@@ -9,10 +9,15 @@ from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 
 import urllib3
+from utils import *
 
 urllib3.disable_warnings()
 
-app = Flask(__name__)
+app = Flask(__name__,
+            static_url_path='', 
+            static_folder='web/static',
+            template_folder='web/templates')
+
 api = Api(app)
 
 logger = logging.getLogger(__name__)
@@ -42,22 +47,44 @@ class ScimUser(Resource):
         }
         
     def get(self):
-        
+        import base64
         print("this is the get method")
         
         print(request)
         
         # Parse request arguments
+        with open('qr_code.png', 'rb') as image_file:
+            base64_bytes = base64.b64encode(image_file.read())
+            #print(base64_bytes)
 
+            base64_string = base64_bytes.decode()
+            print(base64_string) # For insert into the img tag.
+            
+            img = f'<img src=" \
+                    data:image/png; \
+                    data:image/png;base64,${base64_string} \
+                    " alt="qr_code.png" />'
+    
+        # return {
+        #     "statusCode": 200,
+        #     # "body": {'status': 'OK'},
+        #     'body': '<img src="./qr_code.png" />',
+        #     'isBase64Encoded': True,
+        #     'headers': {
+        #         'Content-Type': 'image/png'
+        # }
+    
+        image_path = 'qr_code.png' # point to your image location
+        encoded_img = get_response_image(image_path)
         return {
-        "statusCode": 200,
-        "body": {'status': 'OK'}
+            'Status' : 'Success', 'ImageBytes': encoded_img
         }
     
 # Add the resources to the API
 # api.add_resource(ScimUser, '/scim/v2/ScimUser')
 api.add_resource(ScimUser, '/')
 
+# create a python function to generate qr code
 
 # Handle Lambda events
 def lambda_handler(event, context):

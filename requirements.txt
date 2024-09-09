@@ -13,4 +13,7 @@ python-dotenv
 asyncio
 mock
 pip-system-certs
+qrcode
+Pillow
+
 
