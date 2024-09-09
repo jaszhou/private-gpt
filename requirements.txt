@@ -1,0 +1,16 @@
+MarkupSafe
+psycopg2-binary
+environ
+flask
+flask_restful
+coverage
+pytest
+boto3
+requests
+responses
+urllib3
+python-dotenv
+asyncio
+mock
+pip-system-certs
+
