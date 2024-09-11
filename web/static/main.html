@@ -1,12 +1,56 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>My First Web Page</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My First Web Page</title>
+  <!-- Latest compiled and minified CSS -->
+  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"> -->
+  <link rel="stylesheet" href="./css/bootstrap.min.css">
+
+  <!-- jQuery library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+  <!-- Latest compiled JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 </head>
+
 <body>
-    <h1>Welcome to my first web page</h1>
-    <img src="./images/qr_code.png" alt="This is an image">
-    <p>This is a paragraph of text.</p>
+  <div class="jumbotron text-center">
+    <h2>Welcome to my first web page</h2>
+
+    <p id="disp">This is a paragraph of text.</p>
+
+        <form>
+          <div class="form-group">
+            <textarea id="w3review" class="form-control" rows="5" name="w3review">
+          At w3schools.com you will learn how to make a website. They offer free tutorials in all web development technologies.
+            </textarea>
+          </div>
+          <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
+        </form>
+
+
+        <img class="img-responsive" src="./images/qr_code.png" alt="This is an image" style="width:400px;height:400px;">
+
+
+    <script>
+      $(function () {
+
+        $('#submit_btn').click(function () {
+
+          var textarea = document.getElementById('w3review');
+          var result = document.getElementById('disp');
+
+          <!-- $('#disp').text($v); -->
+          result.textContent = textarea.value;
+          textarea.value = "";
+        });
+
+      });
+    </script>
+  </div>
 </body>
+
 </html>
