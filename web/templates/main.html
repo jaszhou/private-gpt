@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My First Web Page</title>
   <!-- Latest compiled and minified CSS -->
-  <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"> -->
-  <link rel="stylesheet" href="./css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 
   <!-- jQuery library -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -20,12 +19,12 @@
   <div class="jumbotron text-center">
     <h2>Welcome to my first web page</h2>
 
-    <p id="disp">This is a paragraph of text.</p>
 
+        <div id="container"></div>
         <form>
-          <div class="form-group">
-            <textarea id="w3review" class="form-control" rows="5" name="w3review">
-          At w3schools.com you will learn how to make a website. They offer free tutorials in all web development technologies.
+          <div id="grp" class="form-group">
+            <textarea id="w3review" class="form-control" rows="2" name="w3review">
+             Please type something here
             </textarea>
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
@@ -43,8 +42,7 @@
             <div id="collapse1" class="panel-collapse collapse">
               <div class="panel-body">
                 
-                <img class="img-responsive" src="./images/qr_code.png" alt="This is an image" style="width:400px;height:400px;">
-
+                <img class="img-responsive" src="/static/images/{{uid}}.png" alt="This is an image" style="width:400px;height:400px;">
               </div>
               <div class="panel-footer">Panel Footer</div>
             </div>
@@ -55,21 +53,36 @@
 
 
     <script>
+
       $(function () {
 
         $('#submit_btn').click(function () {
 
           var textarea = document.getElementById('w3review');
-          var result = document.getElementById('disp');
 
-          <!-- $('#disp').text($v); -->
-          result.textContent = textarea.value;
+          v = $.trim(textarea.value);
+
+          var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
+          $("#grp").append(q);
+
+          $.post("/db_add",
+          {
+            key: "DonaldDuck",
+            content: textarea.value
+          },
+          function(data, status){
+            console.log("Data: " + data + "\nStatus: " + status);
+
+          });
+
           textarea.value = "";
+
         });
 
         $('#gen_btn').click(function () {
 
-          alert("generate new URL");
+          
+          window.location.href='http://127.0.0.1:5000/generate';
         });
 
       });
@@ -78,3 +91,4 @@
 </body>
 
 </html>
+

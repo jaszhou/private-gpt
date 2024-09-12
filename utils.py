@@ -26,7 +26,7 @@ def get_response_image(image_path):
     encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii') # encode as base64
     return encoded_img
 
-def generate_qr_code(url: Optional[str] = None) -> None:
+def generate_qr_code(url: Optional[str] = None) -> str:
 
     
     # Parse request arguments
@@ -40,8 +40,15 @@ def generate_qr_code(url: Optional[str] = None) -> None:
     # Create a QR code object with a larger size and higher error correction
     qr = qrcode.QRCode(version=3, box_size=20, border=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
 
+    uid = generate_uuid()
+    
     # Define the data to be encoded in the QR code
-    data = url or "https://medium.com/@rahulmallah785671/create-qr-code-by-using-python-2370d7bd9b8d"
+    
+    new_url = f"http://127.0.0.1:5000/pages/{uid}"
+    
+    print(new_url)
+    
+    data = new_url or "http://127.0.0.1:5000/main.html"
 
     # Add the data to the QR code object
     qr.add_data(data)
@@ -52,9 +59,15 @@ def generate_qr_code(url: Optional[str] = None) -> None:
     # Create an image from the QR code with a black fill color and white background
     img = qr.make_image(fill_color="black", back_color="white")
 
-    # Save the QR code image
-    img.save("web/static/images/qr_code.png")
+
     
+    uri = f"web/static/images/{uid}.png"
+    
+    # Save the QR code image
+    img.save(uri)
+    
+    return uid
+
     # Return the QR code as a base64-encoded PNG image
     # return {
     #     'statusCode': 200,
@@ -66,5 +79,15 @@ def generate_qr_code(url: Optional[str] = None) -> None:
     # }
 
 
+#write a python function to generate random UUID 
+
+def generate_uuid() -> str:
+        
+        import uuid
+        
+        return str(uuid.uuid4())
+        
 if __name__ == '__main__':
-    generate_qr_code('https://github.com')
+    # generate_qr_code('https://github.com')
+    
+    print(type(generate_uuid()))

@@ -1,0 +1,5 @@
+-- DROP TABLE IF EXISTS chat;
+CREATE TABLE IF NOT EXISTS chat (
+	myid TEXT NULL,
+	content TEXT NULL
+);

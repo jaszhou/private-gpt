@@ -4,17 +4,21 @@
   
 """
 import logging
-from flask import Flask, request
+from flask import Flask, request, render_template, redirect, url_for, g
 
 from flask_restful import Resource, Api, reqparse
 
 import urllib3
 from utils import *
+from db import *
 
 urllib3.disable_warnings()
 
+
+        
+        
 app = Flask(__name__,
-            static_url_path='', 
+            # static_url_path='/static', 
             static_folder='web/static',
             template_folder='web/templates')
 
@@ -24,6 +28,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 parser = reqparse.RequestParser()
+
+init_db()
 
 class ScimUser(Resource):
     def put(self):
@@ -82,10 +88,47 @@ class ScimUser(Resource):
     
 # Add the resources to the API
 # api.add_resource(ScimUser, '/scim/v2/ScimUser')
-api.add_resource(ScimUser, '/')
+# api.add_resource(ScimUser, '/')
 
 # create a python function to generate qr code
+@app.route("/generate")
+def gen_code():
+    uid = generate_qr_code()
+    return render_template("main.html", uid=uid)
 
+@app.route("/pages/<key_id>", methods=['GET', 'POST'])
+def pages(key_id):
+    with app.app_context():
+        cur = get_db().cursor()
+    return render_template("main.html", uid=key_id)
+
+
+@app.route("/pages", methods=['GET', 'POST'])
+def main_page():
+    return render_template("main.html")
+
+@app.route("/", methods=['GET', 'POST'])
+def main():
+    return render_template("main.html")
+
+
+@app.route("/db", methods=['GET', 'POST'])
+def query():
+    with app.app_context():
+            print(query_db_all(query='select * from chat'))
+            return query_db(query='select * from chat')
+
+@app.route("/db_add", methods=['GET', 'POST'])
+def add_query():
+    c = request.form.get('content')
+    k = request.form.get('key')
+    qry = 'INSERT INTO chat(myid,content) VALUES(\"'+ k +'\", \"'+ c +'\")'
+    with app.app_context():
+            print(f'query: {qry}')
+            query_db(query=qry)
+            print(query_db_all(query='select * from chat'))
+            return query_db(query='select * from chat')
+            
 # Handle Lambda events
 def lambda_handler(event, context):
     
