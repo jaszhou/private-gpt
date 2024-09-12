@@ -8,6 +8,7 @@ import base64
 import qrcode
 from base64 import encodebytes
 from PIL import Image, ImageDraw
+import random, string
 
 # write python function to return an png image as http response
 
@@ -40,7 +41,7 @@ def generate_qr_code(url: Optional[str] = None) -> str:
     # Create a QR code object with a larger size and higher error correction
     qr = qrcode.QRCode(version=3, box_size=20, border=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
 
-    uid = generate_uuid()
+    uid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
     
     # Define the data to be encoded in the QR code
     

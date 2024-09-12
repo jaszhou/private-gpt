@@ -23,6 +23,7 @@
         <div id="container"></div>
         <form>
           <div id="grp" class="form-group">
+            <input id="mykey" class="form-control" type="text" value="{{uid}}" ></input>
             <textarea id="w3review" class="form-control" rows="2" name="w3review">
              Please type something here
             </textarea>
@@ -65,9 +66,11 @@
           var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
           $("#grp").append(q);
 
+          var mykey = document.getElementById('mykey').value;
+
           $.post("/db_add",
           {
-            key: "DonaldDuck",
+            key: mykey,
             content: textarea.value
           },
           function(data, status){

@@ -123,11 +123,17 @@ def add_query():
     c = request.form.get('content')
     k = request.form.get('key')
     qry = 'INSERT INTO chat(myid,content) VALUES(\"'+ k +'\", \"'+ c +'\")'
-    with app.app_context():
-            print(f'query: {qry}')
-            query_db(query=qry)
-            print(query_db_all(query='select * from chat'))
-            return query_db(query='select * from chat')
+    # with app.app_context():
+    print(f'query: {qry}')
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(qry)
+    conn.commit()
+    # rv = cur.fetchall()
+    cur.close()
+    # query_db(query=qry)
+    print(query_db_all(query='select * from chat'))
+    return query_db_all(query='select * from chat')
             
 # Handle Lambda events
 def lambda_handler(event, context):

@@ -29,7 +29,8 @@ def query_db(query, args=(), one=False):
     cur = get_db().execute(query, args)
     rv = cur.fetchall()
     cur.close()
-    return (rv[0] if rv else None) if one else rv
+    # return (rv[0] if rv else None) if one else rv
+    return rv
 
 def query_db_all(query, args=(), one=False):
     cur = get_db().execute(query, args)
@@ -37,6 +38,7 @@ def query_db_all(query, args=(), one=False):
     cur.close()
     for row in rows:
         print(row)
+    return rows
 
 def init_db():
     with app.app_context():
