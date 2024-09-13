@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My First Web Page</title>
+  <title>Snap Copy</title>
   <!-- Latest compiled and minified CSS -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 
@@ -36,20 +36,23 @@
     </div>
   </nav>
 
-    <h2>Welcome to my first web page</h2>
+
 
     <div id="mykey2" class="well">Key:{{uid}}</div>
         <div id="container">
           <table id="myTable" class="table table-striped">
+            <div class="copied-toast"></div>
             <thead>
               <tr>
                 <th>Message</th>
                 <th>ID</th>
                 <th>Time</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               <tr>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -107,18 +110,61 @@
             console.log("Data: " + data + "\nStatus: " + status);
             var obj = JSON.parse(data);
             console.log(obj);
+            var numberofRowsforItems = 0;
             for (var i = 0; i < obj.length; i++) {
-              var r = '<tr><td>'+obj[i][2]+'</td><td>'+obj[i][1]+'</td><td>'+obj[i][3]+'</td></tr>'
+              //var r = '<tr id="row_'+ numberofRowsforItems +'"><td id="content">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button id="copy_btn" class="getId">Copy</button></td></tr>'
+
+              var r = '<tr><td data-type="email">'+obj[i][2]+'</td><td>'+obj[i][1]+'</td><td>'+obj[i][3]+'</td><td><button data-type="copy" class="text-copy">Copy</button></td></tr>'
               $('#myTable tr:last').after(r);
+
+              document.querySelectorAll('button[data-type="copy"]')
+              .forEach(function(button){
+                  button.addEventListener('click', function(){
+                  let email = this.parentNode.parentNode
+                    .querySelector('td[data-type="email"]')
+                    .innerText;
+                  
+                  let tmp = document.createElement('textarea');
+                      tmp.value = email;
+                      tmp.setAttribute('readonly', '');
+                      tmp.style.position = 'absolute';
+                      tmp.style.left = '-9999px';
+                      document.body.appendChild(tmp);
+                      tmp.select();
+                      //document.execCommand('copy');
+                      navigator.clipboard.writeText(email)
+                      document.body.removeChild(tmp);
+                      console.log(`${email} copied.`);
+                      $(".copied-toast").text("Copied!").show().fadeOut(1200);
+                });
+            });
+            
             }
           })};
           
+          $(".copied-toast").hide();
+          $(".text-copy").click(function () {
+            var copiedtext = $(this).closest("tr").find(".copy-me").text();
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(copiedtext)
+                    .then(() => {
+                        $(".copied-toast").text("Copied!").show().fadeOut(1200);
+                    })
+                    .catch((error) => {
+                        $(".copied-toast").text("Not copied!").show().fadeOut(1200);
+                    });
+            } else {
+                $(".copied-toast").text("Not copied!").show().fadeOut(1200);
+            }
+    
+        });
 
          $('#go_btn').click(function(){
             var mykey = document.getElementById('mykey').value;
             link = '/pages/' + mykey
             window.location.href= link;
-         })
+         });
+
 
         $('#submit_btn').click(function () {
 
@@ -140,11 +186,34 @@
 
           //$("#grp").append(q);
 
-          var r = '<tr><td>'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td></tr>'
+
+          var r = '<tr><td class="copy-me" data-type="email">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
 
           console.log(r)
 
           $('#myTable tr:last').after(r);
+
+          document.querySelectorAll('button[data-type="copy"]')
+            .forEach(function(button){
+                button.addEventListener('click', function(){
+                let email = this.parentNode.parentNode
+                  .querySelector('td[data-type="email"]')
+                  .innerText;
+                
+                let tmp = document.createElement('textarea');
+                    tmp.value = email;
+                    tmp.setAttribute('readonly', '');
+                    tmp.style.position = 'absolute';
+                    tmp.style.left = '-9999px';
+                    document.body.appendChild(tmp);
+                    tmp.select();
+                    //document.execCommand('copy');
+                    navigator.clipboard.writeText(email)
+                    document.body.removeChild(tmp);
+                    console.log(`${email} copied.`);
+                    $(".copied-toast").text("Copied!").show().fadeOut(1200);
+              });
+          });
 
           
 
