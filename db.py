@@ -1,5 +1,6 @@
 import sqlite3
 from flask import Flask, g
+import json
 
 DATABASE = 'database.db'
 
@@ -38,7 +39,7 @@ def query_db_all(query, args=(), one=False):
     cur.close()
     for row in rows:
         print(row)
-    return rows
+    return json.dumps(rows)
 
 def init_db():
     with app.app_context():
@@ -48,7 +49,7 @@ def init_db():
         db.commit()
         
 if __name__ == '__main__':
-            # init_db()
+        init_db()
         with app.app_context():
-            query_db(query='INSERT INTO chat(content) VALUES("Let me try2")')
+            # query_db(query='INSERT INTO chat(content) VALUES("Let me try2")')
             print(query_db(query='select * from chat'))

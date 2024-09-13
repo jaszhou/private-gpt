@@ -1,5 +1,7 @@
--- DROP TABLE IF EXISTS chat;
+DROP TABLE IF EXISTS chat;
 CREATE TABLE IF NOT EXISTS chat (
+	id INTEGER PRIMARY KEY,
 	myid TEXT NULL,
-	content TEXT NULL
+	content TEXT NULL,
+	LastModifiedTime TEXT NULL
 );

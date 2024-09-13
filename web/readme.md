@@ -22,3 +22,5 @@ https://medium.com/@zaidbinkhalid/rendering-templates-in-flask-851432e24762
 sqlite
 https://flask.palletsprojects.com/en/3.0.x/patterns/sqlite3/
 
+
+https://pynative.com/python-sqlite-insert-into-table/

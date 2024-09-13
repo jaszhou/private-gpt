@@ -16,20 +16,58 @@
 </head>
 
 <body>
-  <div class="jumbotron text-center">
+  <nav class="navbar navbar-inverse">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">Home</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">Home</a></li>
+        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">Database <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="/db">Query</a></li>
+            <li><a href="#">Reset</a></li>
+            <li><a href="#">Generate</a></li>
+          </ul>
+        </li>
+        <li><a href="#">Information</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+    </div>
+  </nav>
+
     <h2>Welcome to my first web page</h2>
 
+    <div id="mykey2" class="well">Key:{{uid}}</div>
+        <div id="container">
+          <table id="myTable" class="table table-striped">
+            <thead>
+              <tr>
+                <th>Message</th>
+                <th>ID</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
 
-        <div id="container"></div>
+            </tbody>
+          </table>
+        </div>
         <form>
           <div id="grp" class="form-group">
-            <input id="mykey" class="form-control" type="text" value="{{uid}}" ></input>
+            <input id="mykey" class="form-control" type="hidden" value="{{uid}}" ></input>
             <textarea id="w3review" class="form-control" rows="2" name="w3review">
              Please type something here
             </textarea>
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
           <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
+          <button class="btn btn-primary" id="go_btn" type="button">Go To New URL</button>
         </form>
 
         <div class="panel-group">
@@ -57,16 +95,58 @@
 
       $(function () {
 
+        // load data initially for key 
+        var url = window.location.pathname;
+        var id = url.substring(url.lastIndexOf('/') + 1);
+        var u = '/db_get/' + id
+
+        if (id !== null && id !== undefined) {
+
+        $.get(u).done(
+          function(data, status){
+            console.log("Data: " + data + "\nStatus: " + status);
+            var obj = JSON.parse(data);
+            console.log(obj);
+            for (var i = 0; i < obj.length; i++) {
+              var r = '<tr><td>'+obj[i][2]+'</td><td>'+obj[i][1]+'</td><td>'+obj[i][3]+'</td></tr>'
+              $('#myTable tr:last').after(r);
+            }
+          })};
+          
+
+         $('#go_btn').click(function(){
+            var mykey = document.getElementById('mykey').value;
+            link = '/pages/' + mykey
+            window.location.href= link;
+         })
+
         $('#submit_btn').click(function () {
 
           var textarea = document.getElementById('w3review');
 
           v = $.trim(textarea.value);
 
-          var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
-          $("#grp").append(q);
-
           var mykey = document.getElementById('mykey').value;
+
+          var currentdate = new Date();
+          var datetime = currentdate.getDate() + "/"
+          + (currentdate.getMonth()+1)  + "/" 
+          + currentdate.getFullYear() + " @ "  
+          + currentdate.getHours() + ":"  
+          + currentdate.getMinutes() + ":" 
+          + currentdate.getSeconds();
+
+          //var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
+
+          //$("#grp").append(q);
+
+          var r = '<tr><td>'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td></tr>'
+
+          console.log(r)
+
+          $('#myTable tr:last').after(r);
+
+          
 
           $.post("/db_add",
           {
@@ -84,13 +164,20 @@
 
         $('#gen_btn').click(function () {
 
-          
-          window.location.href='http://127.0.0.1:5000/generate';
+          $.get("/generate").done(
+
+          function(data, status){
+            //$('#mykey2').value = data;
+            //$('#mykey').value = data;
+            console.log("\nStatus: " + status);
+            $("body").html(data);
+
+          });
         });
 
       });
     </script>
-  </div>
+
 </body>
 
 </html>

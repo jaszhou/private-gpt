@@ -95,6 +95,7 @@ class ScimUser(Resource):
 def gen_code():
     uid = generate_qr_code()
     return render_template("main.html", uid=uid)
+    # return uid
 
 @app.route("/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):
@@ -102,6 +103,13 @@ def pages(key_id):
         cur = get_db().cursor()
     return render_template("main.html", uid=key_id)
 
+@app.route("/db_get/<key_id>", methods=['GET', 'POST'])
+def get_all_rows(key_id):
+    with app.app_context():
+        cur = get_db().cursor()
+        result = query_db_all(query='select * from chat where myid = \"'+ key_id +'\"')
+        # print(result)
+    return result
 
 @app.route("/pages", methods=['GET', 'POST'])
 def main_page():
@@ -122,7 +130,7 @@ def query():
 def add_query():
     c = request.form.get('content')
     k = request.form.get('key')
-    qry = 'INSERT INTO chat(myid,content) VALUES(\"'+ k +'\", \"'+ c +'\")'
+    qry = 'INSERT INTO chat(myid,content,LastModifiedTime) VALUES(\"'+ k +'\", \"'+ c +'\",CURRENT_TIMESTAMP)'
     # with app.app_context():
     print(f'query: {qry}')
     conn = get_db()
