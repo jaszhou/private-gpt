@@ -29,3 +29,17 @@ lambda:
 
 https://www.cloudtechsimplified.com/run-python-flask-in-aws-lambda/
 
+cdk
+
+https://medium.com/@proebstledavid/installing-amazon-web-services-cloud-development-kit-cdk-on-macos-and-creating-your-first-a4d21cb76f77
+
+
+python3.9 -m pip install virtualenv
+
+cdk bootstrap
+cdk synth
+cdk deploy
+
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+
