@@ -44,6 +44,9 @@ class ScimUser(Resource):
 # Add the resources to the API
 api.add_resource(ScimUser, '/scim/v2/ScimUser')
 
+def handler(event, context):
+    import awsgi
+    return awsgi.response(app, event, context)
 
 # Handle Lambda events
 def lambda_handler(event, context):

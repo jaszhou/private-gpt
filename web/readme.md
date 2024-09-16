@@ -24,3 +24,8 @@ https://flask.palletsprojects.com/en/3.0.x/patterns/sqlite3/
 
 
 https://pynative.com/python-sqlite-insert-into-table/
+
+lambda:
+
+https://www.cloudtechsimplified.com/run-python-flask-in-aws-lambda/
+
