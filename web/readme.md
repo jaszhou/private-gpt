@@ -43,3 +43,7 @@ cdk deploy
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 
+
+URL:
+https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/main/
+
