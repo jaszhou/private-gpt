@@ -19,7 +19,7 @@
   <nav class="navbar navbar-inverse">
     <div class="container-fluid">
       <div class="navbar-header">
-        <a class="navbar-brand" href="/">Home</a>
+        <a class="navbar-brand" href="/">SnapCopy</a>
       </div>
       <ul class="nav navbar-nav">
         <li class="active"><a href="#">Home</a></li>
@@ -105,14 +105,16 @@
 
         if (id !== null && id !== undefined) {
 
+        //var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
+        //var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
+        
         var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
-
-
-        var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
+        // set qr code image
+        $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
 
 
         // set qr code image
-        $('#qrcode').attr('src', src_loc);
+        //$('#qrcode').attr('src', src_loc);
 
         $.get(u).done(
           function(data, status){

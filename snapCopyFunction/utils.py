@@ -38,21 +38,20 @@ def generate_qr_code(url: Optional[str] = None):
     
     # Generate QR code
 
+    uid = ''
+    data = ''
     
     # Create a QR code object with a larger size and higher error correction
     qr = qrcode.QRCode(version=3, box_size=20, border=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
 
-    uid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
-    
-    # Define the data to be encoded in the QR code
-    
-    new_url = f"http://127.0.0.1:5000/pages/{uid}"
-    
-    print(new_url)
-    
-    data = new_url or "http://127.0.0.1:5000/main.html"
     if(url):
         data = url
+    else:
+        uid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
+
+        # Define the data to be encoded in the QR code
+        
+        data = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{uid}"
         
 
     # Add the data to the QR code object

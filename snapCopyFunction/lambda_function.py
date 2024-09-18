@@ -106,8 +106,9 @@ def pages(key_id):
     with app.app_context():
         cur = get_db().cursor()
     
-    new_url = f"/pages/{key_id}"
-    uid, qrcode = generate_qr_code(new_url)
+    new_url = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{key_id}"
+    # new_url = f"/pages/{key_id}"
+    uid, qrcode = generate_qr_code(url = new_url)
     
     return render_template("main.html", uid=uid, qrcode = qrcode)
 
