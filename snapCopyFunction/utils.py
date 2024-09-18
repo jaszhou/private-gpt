@@ -4,6 +4,7 @@
 # 
 from typing import Optional
 import io
+from io import BytesIO
 import base64
 import qrcode
 from base64 import encodebytes
@@ -27,7 +28,7 @@ def get_response_image(image_path):
     encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii') # encode as base64
     return encoded_img
 
-def generate_qr_code(url: Optional[str] = None) -> str:
+def generate_qr_code(url: Optional[str] = None):
 
     
     # Parse request arguments
@@ -50,6 +51,9 @@ def generate_qr_code(url: Optional[str] = None) -> str:
     print(new_url)
     
     data = new_url or "http://127.0.0.1:5000/main.html"
+    if(url):
+        data = url
+        
 
     # Add the data to the QR code object
     qr.add_data(data)
@@ -60,14 +64,27 @@ def generate_qr_code(url: Optional[str] = None) -> str:
     # Create an image from the QR code with a black fill color and white background
     img = qr.make_image(fill_color="black", back_color="white")
 
-
+    buffer = BytesIO()
+    img.save(buffer)
+    buffer.seek(0)
+    # encoded_img = b64encode(buffer.read()).decode()
     
-    uri = f"web/static/images/{uid}.png"
+
+  
+    # store to tmp folder due to lambda permission issue
+    # uri = f"/tmp/{uid}.png"
     
     # Save the QR code image
-    img.save(uri)
+    # img.save(uri)
     
-    return uid
+    b64 = base64.b64encode(buffer.read()).decode("utf-8")
+    
+    return uid, b64
+
+    # return {
+    #    "uid": uid,
+    #    "qrcode_base64": b64
+    # }
 
     # Return the QR code as a base64-encoded PNG image
     # return {

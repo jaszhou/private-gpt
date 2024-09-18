@@ -95,18 +95,16 @@ class ScimUser(Resource):
 # create a python function to generate qr code
 @app.route("/generate")
 def gen_code():
-
     uid, qrcode = generate_qr_code()
     
     return render_template("main.html", uid=uid, qrcode = qrcode)
-    # return uid
 
 @app.route("/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):
     with app.app_context():
         cur = get_db().cursor()
     
-    new_url = f"/pages/{key_id}"
+    new_url = f"http://127.0.0.1:5000/pages/{key_id}"
     uid, qrcode = generate_qr_code(new_url)
     
     return render_template("main.html", uid=uid, qrcode = qrcode)
@@ -127,7 +125,7 @@ def main_page():
 def main():
     # return render_template("main.html")
 
-    content = render_template("body.html")
+    content = render_template("main.html")
     response = {
         "statusCode": 200,
         "body": content,

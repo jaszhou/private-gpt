@@ -16,6 +16,10 @@ python -m pip install -r requirements.txt -t python/
 
 @REM zip -r layer.zip python
 
+del layer.zip
+
+@REM rm -rf python
+
 tar -a -c -f layer.zip python
 
 @REM aws lambda publish-layer-version --layer-name lambda-layer --zip-file fileb://layer.zip --compatible-runtimes python3.9 --compatible-architectures x86_64 --region ap-southeast-2

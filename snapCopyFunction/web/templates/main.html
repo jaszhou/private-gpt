@@ -101,13 +101,18 @@
         // load data initially for key 
         var url = window.location.pathname;
         var id = url.substring(url.lastIndexOf('/') + 1);
-        var u = '/db_get/' + id
+        var u = '/dev/db_get/' + id ;
 
         if (id !== null && id !== undefined) {
 
-          var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
-          // set qr code image
-          $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
+        var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
+
+
+        var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
+
+
+        // set qr code image
+        $('#qrcode').attr('src', src_loc);
 
         $.get(u).done(
           function(data, status){
@@ -165,7 +170,7 @@
 
          $('#go_btn').click(function(){
             var mykey = document.getElementById('mykey').value;
-            link = '/pages/' + mykey
+            link = '/dev/pages/' + mykey
             window.location.href= link;
          });
 
@@ -221,7 +226,7 @@
 
           
 
-          $.post("/db_add",
+          $.post("/dev/db_add",
           {
             key: mykey,
             content: textarea.value
@@ -237,7 +242,7 @@
 
         $('#gen_btn').click(function () {
 
-          $.get("/generate").done(
+          $.get("/dev/generate").done(
 
           function(data, status){
             //$('#mykey2').value = data;

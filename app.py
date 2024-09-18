@@ -9,8 +9,8 @@ from flask import Flask, request, render_template, redirect, url_for, g
 from flask_restful import Resource, Api, reqparse
 
 import urllib3
-from utils import *
-from db import *
+from snapCopyFunction.utils import *
+from snapCopyFunction.db import *
 
 urllib3.disable_warnings()
 

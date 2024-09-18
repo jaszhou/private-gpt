@@ -33,4 +33,5 @@ __pycache__/
 .DS_Store
 */*.zip
 *.zip
+python
 

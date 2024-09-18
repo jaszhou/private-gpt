@@ -2,7 +2,10 @@ import sqlite3
 from flask import Flask, g
 import json
 
-DATABASE = 'database.db'
+# import os
+# os.chdir("/tmp")
+
+DATABASE = '/tmp/database.db'
 
 app = Flask(__name__,
             # static_url_path='/static', 
