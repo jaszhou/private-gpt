@@ -28,7 +28,7 @@ def get_response_image(image_path):
     encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii') # encode as base64
     return encoded_img
 
-def generate_qr_code(url: Optional[str] = None):
+def generate_qr_code(uid: Optional[str] = None):
 
     
     # Parse request arguments
@@ -38,14 +38,14 @@ def generate_qr_code(url: Optional[str] = None):
     
     # Generate QR code
 
-    uid = ''
+    # uid = ''
     data = ''
     
     # Create a QR code object with a larger size and higher error correction
     qr = qrcode.QRCode(version=3, box_size=20, border=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
 
-    if(url):
-        data = url
+    if(uid):
+        data = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{uid}"
     else:
         uid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
 
