@@ -13,9 +13,25 @@
 
   <!-- Latest compiled JavaScript -->
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+  <style>
+
+    @media screen and (max-width: 600px) {
+      #top_menu {
+        visibility: hidden;
+        clear: both;
+        float: left;
+        margin: 10px auto 5px 20px;
+        width: 28%;
+        display: none;
+      }
+    }
+    </style>
+
 </head>
 
 <body>
+  <div id="top_menu">
   <nav class="navbar navbar-inverse">
     <div class="container-fluid">
       <div class="navbar-header">
@@ -30,11 +46,10 @@
             <li><a href="#">Generate</a></li>
           </ul>
         </li>
-        <li><a href="#">Information</a></li>
-        <li><a href="#">About</a></li>
       </ul>
     </div>
   </nav>
+</div>
 
 
 
@@ -45,7 +60,6 @@
             <thead>
               <tr>
                 <th>Message</th>
-                <th>ID</th>
                 <th>Time</th>
                 <th></th>
               </tr>
@@ -55,17 +69,15 @@
                 <td></td>
                 <td></td>
                 <td></td>
-                <td></td>
               </tr>
-
             </tbody>
           </table>
         </div>
         <form>
           <div id="grp" class="form-group">
             <input id="mykey" class="form-control" type="hidden" value="{{uid}}" ></input>
+            <label for="comment">Comment:</label>
             <textarea id="w3review" class="form-control" rows="2" name="w3review">
-             Please type something here
             </textarea>
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
@@ -86,16 +98,13 @@
                 
                 <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
               </div>
-              <div class="panel-footer">Panel Footer</div>
+              <div class="panel-footer"></div>
             </div>
           </div>
         </div>
 
         
-
-
     <script>
-
       $(function () {
 
         // load data initially for key 
@@ -123,9 +132,8 @@
             console.log(obj);
             var numberofRowsforItems = 0;
             for (var i = 0; i < obj.length; i++) {
-              //var r = '<tr id="row_'+ numberofRowsforItems +'"><td id="content">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button id="copy_btn" class="getId">Copy</button></td></tr>'
-
-              var r = '<tr><td data-type="email">'+obj[i][2]+'</td><td>'+obj[i][1]+'</td><td>'+obj[i][3]+'</td><td><button data-type="copy" class="text-copy">Copy</button></td></tr>'
+ 
+              var r = '<tr><td data-type="email">'+obj[i][2]+'</td><td>'+obj[i][3]+'</td><td><button data-type="copy" class="text-copy">Copy</button></td></tr>'
               $('#myTable tr:last').after(r);
 
               document.querySelectorAll('button[data-type="copy"]')
@@ -198,7 +206,7 @@
           //$("#grp").append(q);
 
 
-          var r = '<tr><td class="copy-me" data-type="email">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
+          var r = '<tr><td class="copy-me" data-type="email">'+v+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
 
           console.log(r)
 
