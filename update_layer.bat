@@ -7,6 +7,9 @@
 
 @REM zappashell.bat 
 
+.\ve\bin\activate.ps1
+
+
 python -m pip config set global.index-url https://artifactory.internal.cba/artifactory/api/pypi/pypi/simple
 
 

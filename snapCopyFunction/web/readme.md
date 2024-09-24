@@ -14,6 +14,12 @@ bootstrap:
 https://www.w3schools.com/bootstrap/bootstrap_get_started.asp
 
 
+
+bootstrap 5:
+
+https://www.w3schools.com/bootstrap5/bootstrap_navbar.php
+
+
 template:
 
 https://medium.com/@zaidbinkhalid/rendering-templates-in-flask-851432e24762
