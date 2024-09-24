@@ -12,37 +12,35 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <body>
-  <div id="top_menu">
+
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">iCopy</a>
+      <a class="navbar-brand" href="#">Logo</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="collapsibleNavbar">
         <ul class="navbar-nav">
           <li class="nav-item">
-          </ul>
-            <a class="nav-link" href="/db">Query</a>
+            <a class="nav-link" href="#">Link</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Link</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Help</a>
-          </li>
+            <a class="nav-link" href="#">Link</a>
+          </li>    
         </ul>
       </div>
     </div>
   </nav>
 
-</div>
 
     <div id="mykey2" class="well">Key:{{uid}}</div>
         <div id="container">
           <div class="row">
-            <div class="col-12 col-sm-6 d-none d-sm-block">Visible on Small Screens and Up</div>
-            <div class="col-12 col-sm-6 d-block d-sm-none">Visible on Extra Small Screens Only</div>
+            <div class="col-12 col-sm-6 d-none d-sm-block"></div>
+            <div class="col-12 col-sm-6 d-block d-sm-none"></div>
          </div>
           <table id="myTable" class="table table-striped">
             <div class="copied-toast"></div>
@@ -68,6 +66,7 @@
             <label for="comment">Comment:</label>
             <textarea id="w3review" class="form-control" rows="2" name="w3review">
             </textarea>
+            <br>
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
           <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
@@ -85,20 +84,24 @@
             <div id="collapse1" class="panel-collapse collapse">
               <div class="panel-body">
                 
-                <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
+                <img id="qrcode2" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
               </div>
               <div class="panel-footer"></div>
             </div>
           </div>
         </div>
 
+        <div>
+                
+          <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
+        </div>
         
     <script>
       jQuery( document ).ready( function( $ ) {
         // $() will work as an alias for jQuery() inside of this function
         // [ your code goes here ]
 
-      $(function () {
+      //$(function () {
 
         // load data initially for key 
         var url = window.location.pathname;
@@ -256,7 +259,7 @@
           });
         });
 
-      });
+      //});
 
     } );
     </script>
