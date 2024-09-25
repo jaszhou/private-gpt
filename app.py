@@ -11,6 +11,8 @@ from flask_restful import Resource, Api, reqparse
 import urllib3
 from snapCopyFunction.utils import *
 from snapCopyFunction.db import *
+import awsgi, jsonify
+from flask_cors import CORS #1 
 
 urllib3.disable_warnings()
 
@@ -21,6 +23,8 @@ app = Flask(__name__,
             # static_url_path='/static', 
             static_folder='web/static',
             template_folder='web/templates')
+
+CORS(app)
 
 api = Api(app)
 
@@ -91,19 +95,25 @@ class ScimUser(Resource):
 # api.add_resource(ScimUser, '/')
 
 # create a python function to generate qr code
-@app.route("/generate")
+@app.route("/dev/generate")
 def gen_code():
-    uid = generate_qr_code()
-    return render_template("main.html", uid=uid)
-    # return uid
 
-@app.route("/pages/<key_id>", methods=['GET', 'POST'])
+    uid, qrcode = generate_qr_code()
+    
+    return render_template("main.html", uid=uid, qrcode = qrcode)
+
+@app.route("/dev/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):
     with app.app_context():
         cur = get_db().cursor()
-    return render_template("main.html", uid=key_id)
+    
+    # new_url = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{key_id}"
+    # new_url = f"/pages/{key_id}"
+    uid, qrcode = generate_qr_code(uid = key_id)
+    
+    return render_template("main.html", uid=uid, qrcode = qrcode)
 
-@app.route("/db_get/<key_id>", methods=['GET', 'POST'])
+@app.route("/dev/db_get/<key_id>", methods=['GET', 'POST'])
 def get_all_rows(key_id):
     with app.app_context():
         cur = get_db().cursor()
@@ -111,7 +121,7 @@ def get_all_rows(key_id):
         # print(result)
     return result
 
-@app.route("/pages", methods=['GET', 'POST'])
+@app.route("/dev/pages", methods=['GET', 'POST'])
 def main_page():
     return render_template("main.html")
 
@@ -120,13 +130,13 @@ def main():
     return render_template("main.html")
 
 
-@app.route("/db", methods=['GET', 'POST'])
+@app.route("/dev/db", methods=['GET', 'POST'])
 def query():
     with app.app_context():
             print(query_db_all(query='select * from chat'))
             return query_db(query='select * from chat')
 
-@app.route("/db_add", methods=['GET', 'POST'])
+@app.route("/dev/db_add", methods=['GET', 'POST'])
 def add_query():
     c = request.form.get('content')
     k = request.form.get('key')
@@ -150,25 +160,7 @@ def lambda_handler(event, context):
     logger.info(event)
     logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     
-    # Extract the HTTP method and path from the Lambda event
-    http_method = event['httpMethod']
-
-    path = event['path']    
-
-    # Route the request to the appropriate Flask endpoint
-    with app.test_request_context(path, method=http_method, json=event):
-        print(request)
-        logger.info(request)
-        
-        response = app.full_dispatch_request()
-
-    # Return the Flask response as a JSON object
-    return {
-        'statusCode': response.status_code,
-        'headers': dict(response.headers),
-        'body': response.json
-    }
-
+    return awsgi.response(app, event, context)
     
 if __name__ == '__main__':
     app.run(debug=True)

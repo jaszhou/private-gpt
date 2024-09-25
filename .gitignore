@@ -20,6 +20,12 @@ __pycache__/
 
 # pyenv
 /.python-version
+ve
+node_modules/
+cdk_python
+.github
+cdk.out
+
 
 # IDE
 .idea/

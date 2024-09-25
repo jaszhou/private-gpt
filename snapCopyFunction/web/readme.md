@@ -20,6 +20,10 @@ bootstrap 5:
 https://www.w3schools.com/bootstrap5/bootstrap_navbar.php
 
 
+react:
+https://medium.com/@tom_96657/how-to-use-bootstrap-5-in-react-js-an-original-tutorial-with-not-original-examples-c51aa2a4116d
+
+
 template:
 
 https://medium.com/@zaidbinkhalid/rendering-templates-in-flask-851432e24762
@@ -68,9 +72,22 @@ setup environment
 
 $env:FLASK_APP = "lambda_function.py";
 
+$env:FLASK_APP = "app.py";
 dir env:
 
 
 flask run --debugger
 
+
+.\ve\bin\activate.ps1
+
+
+python -m pip config set global.index-url https://artifactory.internal.cba/artifactory/api/pypi/pypi/simple
+
+
+python -m pip install -r requirements.txt
+
+
+react and flask:
+https://medium.com/@nuburoojkhattak/connecting-your-react-app-to-your-flask-api-a-step-by-step-guide-3daa8ce9d3f2
 

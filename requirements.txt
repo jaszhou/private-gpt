@@ -17,4 +17,5 @@ qrcode
 Pillow
 jsonify
 aws-wsgi
+flask_cors
 
