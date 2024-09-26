@@ -12,7 +12,7 @@ import urllib3
 from snapCopyFunction.utils import *
 from snapCopyFunction.db import *
 import awsgi, jsonify
-
+from ol import *
 
 urllib3.disable_warnings()
 
@@ -115,6 +115,15 @@ def get_all_rows(key_id):
         cur = get_db().cursor()
         result = query_db_all(query='select * from chat where myid = \"'+ key_id +'\"')
         # print(result)
+    return result
+
+@app.route("/dev/chat", methods=['POST'])
+def chatbot():
+    
+    c = request.form.get('content')
+    k = request.form.get('key')
+    result = chat_mock(c)
+    
     return result
 
 @app.route("/pages", methods=['GET', 'POST'])

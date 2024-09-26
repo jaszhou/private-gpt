@@ -18,4 +18,5 @@ Pillow
 jsonify
 aws-wsgi
 flask_cors
+huggingface_hub
 

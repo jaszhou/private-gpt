@@ -13,6 +13,7 @@ from snapCopyFunction.utils import *
 from snapCopyFunction.db import *
 import awsgi, jsonify
 from flask_cors import CORS #1 
+from ol import *
 
 urllib3.disable_warnings()
 
@@ -101,6 +102,15 @@ def gen_code():
     uid, qrcode = generate_qr_code()
     
     return render_template("main.html", uid=uid, qrcode = qrcode)
+
+@app.route("/dev/chat", methods=['POST'])
+def chatbot():
+    
+    c = request.form.get('content')
+    k = request.form.get('key')
+    result = chat_mock(c)
+    
+    return result
 
 @app.route("/dev/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):
