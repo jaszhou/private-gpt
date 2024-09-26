@@ -57,6 +57,8 @@ PIL issue:
 
 https://stackoverflow.com/questions/57197283/aws-lambda-cannot-import-name-imaging-from-pil
 
+arn:aws:lambda:ap-southeast-2:770693421928:layer:Klayers-p39-pillow:1
+
 
 setup environment
 

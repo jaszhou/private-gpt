@@ -69,6 +69,7 @@
             <br>
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
+          <button class="btn btn-primary" id="chat_btn" type="button">Chat</button>
           <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
           <button class="btn btn-primary" id="go_btn" type="button">Go To New URL</button>
         </form>
@@ -173,6 +174,76 @@
             }
     
         });
+
+        $('#chat_btn').click(function () {
+
+            var textarea = document.getElementById('w3review');
+
+            v = $.trim(textarea.value);
+
+            var mykey = document.getElementById('mykey').value;
+
+            var currentdate = new Date();
+            var datetime = currentdate.getDate() + "/"
+            + (currentdate.getMonth()+1)  + "/" 
+            + currentdate.getFullYear() + " @ "  
+            + currentdate.getHours() + ":"  
+            + currentdate.getMinutes() + ":" 
+            + currentdate.getSeconds();
+
+            //var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
+
+            //$("#grp").append(q);
+
+
+            var r = '<tr><td class="copy-me" data-type="email">'+v+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
+
+            console.log(r)
+
+            $('#myTable tr:last').after(r);
+
+            document.querySelectorAll('button[data-type="copy"]')
+              .forEach(function(button){
+                  button.addEventListener('click', function(){
+                  let email = this.parentNode.parentNode
+                    .querySelector('td[data-type="email"]')
+                    .innerText;
+                  
+                  let tmp = document.createElement('textarea');
+                      tmp.value = email;
+                      tmp.setAttribute('readonly', '');
+                      tmp.style.position = 'absolute';
+                      tmp.style.left = '-9999px';
+                      document.body.appendChild(tmp);
+                      tmp.select();
+                      //document.execCommand('copy');
+                      navigator.clipboard.writeText(email)
+                      document.body.removeChild(tmp);
+                      console.log(`${email} copied.`);
+                      $(".copied-toast").text("Copied!").show().fadeOut(1200);
+                });
+            });
+
+
+            $.post("/dev/chat",
+            {
+              key: mykey,
+              content: textarea.value
+            },
+            function(data, status){
+              console.log("Data: " + data + "\nStatus: " + status);
+
+              var r = '<tr><td class="copy-me" data-type="email">'+data['response']+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
+
+              console.log(r)
+
+              $('#myTable tr:last').after(r);
+
+            });
+
+            textarea.value = "";
+
+            });
 
          $('#go_btn').click(function(){
             var mykey = document.getElementById('mykey').value;

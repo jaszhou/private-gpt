@@ -13,7 +13,9 @@ from snapCopyFunction.utils import *
 from snapCopyFunction.db import *
 import awsgi, jsonify
 from flask_cors import CORS #1 
-from ol import *
+# from ol import *
+# from hf import *
+from bedrock import *
 
 urllib3.disable_warnings()
 
@@ -108,9 +110,27 @@ def chatbot():
     
     c = request.form.get('content')
     k = request.form.get('key')
-    result = chat_mock(c)
+
+
+
+    # result = chat_mock(c)
+    result = talk_bedrock(c)
+
+    resp = {
+        "model": "llama3.2",
+        "created_at": "2023-08-04T19:22:45.499127Z",
+        "response": result,
+        "done": True,
+        "context": [1, 2, 3],
+        "total_duration": 5043500667,
+        "load_duration": 5025959,
+        "prompt_eval_count": 26,
+        "prompt_eval_duration": 325953000,
+        "eval_count": 290,
+        "eval_duration": 4709213000
+    }
     
-    return result
+    return resp
 
 @app.route("/dev/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):

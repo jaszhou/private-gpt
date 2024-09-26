@@ -5,7 +5,7 @@ import json
 
 #pip install huggingface_hub
 
-#export HF_TOKEN="<>"
+#export HF_TOKEN=""
 
 repo_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
@@ -41,8 +41,15 @@ def call_llm(inference_client: InferenceClient, prompt: str):
 
 
 
+def talk_llm(prompt: str):
+
+    # return call_llm(llm_client, prompt)
+    return "I'm good!"
+
 
 
 response=call_llm(llm_client, "write me a crazy joke")
 
 print (response)
+
+
