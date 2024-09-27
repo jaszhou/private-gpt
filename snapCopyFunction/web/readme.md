@@ -92,3 +92,7 @@ python -m pip install -r requirements.txt
 react and flask:
 https://medium.com/@nuburoojkhattak/connecting-your-react-app-to-your-flask-api-a-step-by-step-guide-3daa8ce9d3f2
 
+
+Tutorial: Create a REST API as an Amazon S3 proxy
+https://docs.aws.amazon.com/apigateway/latest/developerguide/integrating-api-with-aws-services-s3.html
+
