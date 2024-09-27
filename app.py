@@ -13,9 +13,9 @@ from snapCopyFunction.utils import *
 from snapCopyFunction.db import *
 import awsgi, jsonify
 from flask_cors import CORS #1 
-# from ol import *
-# from hf import *
-from bedrock import *
+from ol import *
+from hf import *
+# from bedrock import *
 
 urllib3.disable_warnings()
 
@@ -113,8 +113,8 @@ def chatbot():
 
 
 
-    # result = chat_mock(c)
-    result = talk_bedrock(c)
+    result = chat_mock(c)
+    # result = talk_bedrock(c)
 
     resp = {
         "model": "llama3.2",
