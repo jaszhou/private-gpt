@@ -25,12 +25,16 @@
             <a class="nav-link" href="#">About</a>
           </li>
         </ul>
+        <form class="d-flex">
+          <input class="form-control me-2" type="text" placeholder="{{uid}}">
+          <button class="btn btn-primary" type="button">Search</button>
+        </form>
       </div>
     </div>
   </nav>
 
   <div id="content">
-    <div id="mykey2" class="well">Key:{{uid}}</div>
+    <div id="divCheckbox" style="display: none;"></div>
         <div id="container">
           <div class="row">
             <div class="col-12 col-sm-6 d-none d-sm-block"></div>
