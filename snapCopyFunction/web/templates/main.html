@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Snap Copy</title>
+  <title>iCopy</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 
@@ -29,7 +29,7 @@
     </div>
   </nav>
 
-
+  <div id="content">
     <div id="mykey2" class="well">Key:{{uid}}</div>
         <div id="container">
           <div class="row">
@@ -64,16 +64,18 @@
           </div>
           <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
           <button class="btn btn-primary" id="chat_btn" type="button">Chat</button>
+          <!--
           <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
-
+          -->
         </form>
 
         <div class="panel-group">
           <div class="panel panel-default">
             <div class="panel-heading">
               <h4 class="panel-title">
-                <!-- <button class="btn btn-primary" type="button">Show QR Code</button> -->
+                <!-- <button class="btn btn-primary" type="button">Show QR Code</button>
                 <a data-toggle="collapse" href="#collapse1">Show QR Code</a>
+                 -->
               </h4>
             </div>
             <div id="collapse1" class="panel-collapse collapse">
@@ -90,12 +92,12 @@
                 
           <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
         </div>
+      </div>
         
     <script>
       
 jQuery( document ).ready( function( $ ) {
-  // $() will work as an alias for jQuery() inside of this function
-  // [ your code goes here ]
+
 
 $(function () {
 
@@ -104,18 +106,13 @@ $(function () {
   var id = url.substring(url.lastIndexOf('/') + 1);
   var u = '/dev/db_get/' + id ;
 
-  if (id !== null && id !== undefined) {
+  console.log("id: " + id);
 
-  //var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
-  //var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
+  if (id !== null && id !== undefined && id.length > 10) {
   
   var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
   // set qr code image
   $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
-
-
-  // set qr code image
-  //$('#qrcode').attr('src', src_loc);
 
   $.get(u).done(
     function(data, status){
@@ -151,7 +148,30 @@ $(function () {
       });
       
       }
-    })};
+    })} else {
+
+      console.log('create a new key');  
+    // create new key
+
+    function makeid(length) {
+      let result = '';
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const charactersLength = characters.length;
+      let counter = 0;
+      while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
+      }
+      return result;
+  }
+  
+  key = makeid(20)
+  console.log(key);
+  link = '/dev/pages/' + key
+  window.location.href= link;
+
+  }
+
     
     $(".copied-toast").hide();
     $(".text-copy").click(function () {
@@ -327,6 +347,8 @@ $(function () {
 } );
 
     </script>
+
+
 
 </body>
 

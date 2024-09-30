@@ -15,9 +15,9 @@ $(function () {
   //var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
   //var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
   
-  var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
-  // set qr code image
-  $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
+  // var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
+  // // set qr code image
+  // $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
 
 
   // set qr code image

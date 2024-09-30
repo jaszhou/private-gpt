@@ -1,236 +1,64 @@
-
-  <nav class="navbar navbar-inverse">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <a class="navbar-brand" href="/">Home</a>
+<div id="content">
+  <div id="mykey2" class="well">Key:{{uid}}</div>
+      <div id="container">
+        <div class="row">
+          <div class="col-12 col-sm-6 d-none d-sm-block"></div>
+          <div class="col-12 col-sm-6 d-block d-sm-none"></div>
+       </div>
+        <table id="myTable" class="table table-striped">
+          <div class="copied-toast"></div>
+          <thead>
+            <tr>
+              <th>Message</th>
+              <th>Time</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <ul class="nav navbar-nav">
-        <li class="active"><a href="#">Home</a></li>
-        <li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" href="#">Database <span class="caret"></span></a>
-          <ul class="dropdown-menu">
-            <li><a href="/db">Query</a></li>
-            <li><a href="#">Reset</a></li>
-            <li><a href="#">Generate</a></li>
-          </ul>
-        </li>
-        <li><a href="#">Information</a></li>
-        <li><a href="#">About</a></li>
-      </ul>
+      <form>
+        <div id="grp" class="form-group">
+          <input id="mykey" class="form-control" type="hidden" value="{{uid}}" ></input>
+          <label for="comment">Comment:</label>
+          <textarea id="w3review" class="form-control" rows="2" name="w3review">
+          </textarea>
+          <br>
+        </div>
+        <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
+        <button class="btn btn-primary" id="chat_btn" type="button">Chat</button>
+        <!--
+        <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
+        -->
+      </form>
+
+      <div class="panel-group">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <!-- <button class="btn btn-primary" type="button">Show QR Code</button>
+              <a data-toggle="collapse" href="#collapse1">Show QR Code</a>
+               -->
+            </h4>
+          </div>
+          <div id="collapse1" class="panel-collapse collapse">
+            <div class="panel-body">
+              
+              <img id="qrcode2" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
+            </div>
+            <div class="panel-footer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+              
+        <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
+      </div>
     </div>
-  </nav>
-
-
-
-    <div id="mykey2" class="well">Key:{{uid}}</div>
-        <div id="container">
-          <table id="myTable" class="table table-striped">
-            <div class="copied-toast"></div>
-            <thead>
-              <tr>
-                <th>Message</th>
-                <th>ID</th>
-                <th>Time</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-              </tr>
-
-            </tbody>
-          </table>
-        </div>
-        <form>
-          <div id="grp" class="form-group">
-            <input id="mykey" class="form-control" type="hidden" value="{{uid}}" ></input>
-            <textarea id="w3review" class="form-control" rows="2" name="w3review">
-             Please type something here
-            </textarea>
-          </div>
-          <button class="btn btn-primary" id="submit_btn" type="button">Submit</button>
-          <button class="btn btn-primary" id="gen_btn" type="button">Generate New URL</button>
-          <button class="btn btn-primary" id="go_btn" type="button">Go To New URL</button>
-        </form>
-
-        <div class="panel-group">
-          <div class="panel panel-default">
-            <div class="panel-heading">
-              <h4 class="panel-title">
-                <!-- <button class="btn btn-primary" type="button">Show QR Code</button> -->
-                <a data-toggle="collapse" href="#collapse1">Show QR Code</a>
-              </h4>
-            </div>
-            <div id="collapse1" class="panel-collapse collapse">
-              <div class="panel-body">
-                
-                <img id="qrcode" class="img-responsive" src="" alt="This is an image" style="width:400px;height:400px;">
-              </div>
-              <div class="panel-footer">Panel Footer</div>
-            </div>
-          </div>
-        </div>
-
-        
-
-
-    <script>
-
-      $(function () {
-
-        // load data initially for key 
-        var url = window.location.pathname;
-        var id = url.substring(url.lastIndexOf('/') + 1);
-        var u = '/dev/db_get/' + id
-
-        if (id !== null && id !== undefined) {
-
-          var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
-
-
-          var src_loc = "image/png;base64," + QRCodeByteArrayAsBase64;
-
-        $.get(u).done(
-          function(data, status){
-            console.log("Data: " + data + "\nStatus: " + status);
-            var obj = JSON.parse(data);
-            console.log(obj);
-            var numberofRowsforItems = 0;
-            for (var i = 0; i < obj.length; i++) {
-              //var r = '<tr id="row_'+ numberofRowsforItems +'"><td id="content">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button id="copy_btn" class="getId">Copy</button></td></tr>'
-
-              var r = '<tr><td data-type="email">'+obj[i][2]+'</td><td>'+obj[i][1]+'</td><td>'+obj[i][3]+'</td><td><button data-type="copy" class="text-copy">Copy</button></td></tr>'
-              $('#myTable tr:last').after(r);
-
-              document.querySelectorAll('button[data-type="copy"]')
-              .forEach(function(button){
-                  button.addEventListener('click', function(){
-                  let email = this.parentNode.parentNode
-                    .querySelector('td[data-type="email"]')
-                    .innerText;
-                  
-                  let tmp = document.createElement('textarea');
-                      tmp.value = email;
-                      tmp.setAttribute('readonly', '');
-                      tmp.style.position = 'absolute';
-                      tmp.style.left = '-9999px';
-                      document.body.appendChild(tmp);
-                      tmp.select();
-                      //document.execCommand('copy');
-                      navigator.clipboard.writeText(email)
-                      document.body.removeChild(tmp);
-                      console.log(`${email} copied.`);
-                      $(".copied-toast").text("Copied!").show().fadeOut(1200);
-                });
-            });
-            
-            }
-          })};
-          
-          $(".copied-toast").hide();
-          $(".text-copy").click(function () {
-            var copiedtext = $(this).closest("tr").find(".copy-me").text();
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(copiedtext)
-                    .then(() => {
-                        $(".copied-toast").text("Copied!").show().fadeOut(1200);
-                    })
-                    .catch((error) => {
-                        $(".copied-toast").text("Not copied!").show().fadeOut(1200);
-                    });
-            } else {
-                $(".copied-toast").text("Not copied!").show().fadeOut(1200);
-            }
-    
-        });
-
-         $('#go_btn').click(function(){
-            var mykey = document.getElementById('mykey').value;
-            link = '/dev/pages/' + mykey
-            window.location.href= link;
-         });
-
-
-        $('#submit_btn').click(function () {
-
-          var textarea = document.getElementById('w3review');
-
-          v = $.trim(textarea.value);
-
-          var mykey = document.getElementById('mykey').value;
-
-          var currentdate = new Date();
-          var datetime = currentdate.getDate() + "/"
-          + (currentdate.getMonth()+1)  + "/" 
-          + currentdate.getFullYear() + " @ "  
-          + currentdate.getHours() + ":"  
-          + currentdate.getMinutes() + ":" 
-          + currentdate.getSeconds();
-
-          //var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
-
-          //$("#grp").append(q);
-
-
-          var r = '<tr><td class="copy-me" data-type="email">'+v+'</td><td>'+mykey+'</td><td>'+datetime+'</td><td><button data-type="copy"><div class="text-copy">Copy</div></button></td></tr>'
-
-          console.log(r)
-
-          $('#myTable tr:last').after(r);
-
-          document.querySelectorAll('button[data-type="copy"]')
-            .forEach(function(button){
-                button.addEventListener('click', function(){
-                let email = this.parentNode.parentNode
-                  .querySelector('td[data-type="email"]')
-                  .innerText;
-                
-                let tmp = document.createElement('textarea');
-                    tmp.value = email;
-                    tmp.setAttribute('readonly', '');
-                    tmp.style.position = 'absolute';
-                    tmp.style.left = '-9999px';
-                    document.body.appendChild(tmp);
-                    tmp.select();
-                    //document.execCommand('copy');
-                    navigator.clipboard.writeText(email)
-                    document.body.removeChild(tmp);
-                    console.log(`${email} copied.`);
-                    $(".copied-toast").text("Copied!").show().fadeOut(1200);
-              });
-          });
-
-          
-
-          $.post("/dev/db_add",
-          {
-            key: mykey,
-            content: textarea.value
-          },
-          function(data, status){
-            console.log("Data: " + data + "\nStatus: " + status);
-
-          });
-
-          textarea.value = "";
-
-        });
-
-        $('#gen_btn').click(function () {
-
-          $.get("/dev/generate").done(
-
-          function(data, status){
-            //$('#mykey2').value = data;
-            //$('#mykey').value = data;
-            console.log("\nStatus: " + status);
-            $("body").html(data);
-
-          });
-        });
-
-      });
-    </script>
