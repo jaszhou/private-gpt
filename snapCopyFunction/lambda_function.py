@@ -198,6 +198,18 @@ def lambda_handler(event, context):
     logger.info(event)
     logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     
+    # reqcontxt = event.get("requestContext")
+    # httpprtcl = reqcontxt.get("http")
+    # methodname = httpprtcl.get("method")
+
+    # path = httpprtcl.get('path')
+    
+    # print('### http method name ###' + str(methodname) +' path: ' + str(path))
+        
+    # event['httpMethod'] = methodname
+    # event['path'] = path
+    
+    
     return awsgi.response(app, event, context)
 
 
