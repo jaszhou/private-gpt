@@ -1,6 +1,5 @@
 """
   This is the entry of Lambda function, it'll setup the routes and capture the request from API Gateway
-  Author: jason.zhou@cba.com.au
   
 """
 import logging
@@ -16,9 +15,6 @@ from snapCopyFunction.bedrock import *
 
 
 urllib3.disable_warnings()
-
-
-        
         
 app = Flask(__name__,
             # static_url_path='/static', 
@@ -34,64 +30,6 @@ parser = reqparse.RequestParser()
 
 init_db()
 
-class ScimUser(Resource):
-    def put(self):
-        
-        print("this is the put method")
-        
-        print(request.get_json())
-        
-        # Parse request arguments
-        args = parser.parse_args()
-       
-        # Access parsed arguments
-        name = args['userName']
-        id = args['id']
-       
-        # Do something with parsed arguments
-        # return {'name': name, 'id': id}
-        return {
-        "statusCode": 200,
-        "body": {'name': name, 'id': id},
-        }
-        
-    def get(self):
-        import base64
-        print("this is the get method")
-        
-        print(request)
-        
-        # Parse request arguments
-        with open('qr_code.png', 'rb') as image_file:
-            base64_bytes = base64.b64encode(image_file.read())
-            #print(base64_bytes)
-
-            base64_string = base64_bytes.decode()
-            print(base64_string) # For insert into the img tag.
-            
-            img = f'<img src=" \
-                    data:image/png; \
-                    data:image/png;base64,${base64_string} \
-                    " alt="qr_code.png" />'
-    
-        # return {
-        #     "statusCode": 200,
-        #     # "body": {'status': 'OK'},
-        #     'body': '<img src="./qr_code.png" />',
-        #     'isBase64Encoded': True,
-        #     'headers': {
-        #         'Content-Type': 'image/png'
-        # }
-    
-        image_path = 'qr_code.png' # point to your image location
-        encoded_img = get_response_image(image_path)
-        return {
-            'Status' : 'Success', 'ImageBytes': encoded_img
-        }
-    
-# Add the resources to the API
-# api.add_resource(ScimUser, '/scim/v2/ScimUser')
-# api.add_resource(ScimUser, '/')
 
 @app.route("/chat", methods=['POST'])
 def chatbot():
@@ -197,19 +135,7 @@ def lambda_handler(event, context):
     logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     logger.info(event)
     logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    
-    # reqcontxt = event.get("requestContext")
-    # httpprtcl = reqcontxt.get("http")
-    # methodname = httpprtcl.get("method")
-
-    # path = httpprtcl.get('path')
-    
-    # print('### http method name ###' + str(methodname) +' path: ' + str(path))
-        
-    # event['httpMethod'] = methodname
-    # event['path'] = path
-    
-    
+       
     return awsgi.response(app, event, context)
 
 
