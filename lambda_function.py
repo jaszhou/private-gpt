@@ -99,6 +99,11 @@ def gen_code():
     
     return render_template("main.html", uid=uid, qrcode = qrcode)
 
+@app.route("/chat")
+def chat_code():
+    
+    return render_template("chat.html")
+
 @app.route("/pages/<key_id>", methods=['GET', 'POST'])
 def pages(key_id):
     with app.app_context():

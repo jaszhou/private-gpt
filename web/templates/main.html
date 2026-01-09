@@ -12,29 +12,29 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="javascript:void(0)"><img src="{{ url_for('static', filename='images/logo2.jpeg')}}" height="64"></a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mynavbar">
+      <a class="navbar-brand" href="#"><img src='/dev/static/images/logo2.jpeg' height="64"></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
         <span class="navbar-toggler-icon"></span>
       </button>
-      <div class="collapse navbar-collapse" id="mynavbar">
-        <ul class="navbar-nav me-auto">
+      <div class="collapse navbar-collapse" id="collapsibleNavbar">
+        <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0)">Query</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0)">Generate</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="javascript:void(0)">About</a>
+            <a class="nav-link" href="#">About</a>
           </li>
         </ul>
-        <form class="d-flex">
-          <input class="form-control me-2" type="text" placeholder="Search">
-          <button class="btn btn-primary" type="button">Search</button>
-        </form>
       </div>
+        <ul class="nav navbar-nav navbar-right">
+          <li>
+            <form class="d-flex">
+              <input class="form-control me-2" type="text" placeholder="{{uid}}">
+              <button class="btn btn-primary" type="button">Search</button>
+            </form>
+          </li>
+        </ul>
+
     </div>
   </nav>
   
