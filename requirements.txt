@@ -19,4 +19,5 @@ jsonify
 aws-wsgi
 flask_cors
 huggingface_hub
+beautifulsoup4
 

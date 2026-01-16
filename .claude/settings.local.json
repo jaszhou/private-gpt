@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python get_news.py)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
