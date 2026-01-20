@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import boto3
 import os
 from io import BytesIO
-import threading
 import time
 
 # -------------------------
@@ -15,8 +14,53 @@ VOICE_ID = os.environ.get('VOICE_ID', 'Zhiyu')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
+# Rate limiting configuration
+RATE_LIMIT_FILE = '/tmp/last_invoke_time.txt' if os.name != 'nt' else 'last_invoke_time.txt'
+RATE_LIMIT_SECONDS = 60  # 1 minute
+
 # -------------------------
-# 2. Scrape latest news
+# 2. Rate Limiting Functions
+# -------------------------
+def check_rate_limit():
+    """Check if function can be invoked based on rate limiting"""
+    try:
+        current_time = time.time()
+
+        # Check if rate limit file exists
+        if os.path.exists(RATE_LIMIT_FILE):
+            with open(RATE_LIMIT_FILE, 'r') as f:
+                last_invoke_time = float(f.read().strip())
+
+            # Check if enough time has passed
+            time_since_last = current_time - last_invoke_time
+            if time_since_last < RATE_LIMIT_SECONDS:
+                remaining_time = RATE_LIMIT_SECONDS - time_since_last
+                return False, remaining_time
+
+        # Update last invoke time
+        with open(RATE_LIMIT_FILE, 'w') as f:
+            f.write(str(current_time))
+
+        return True, 0
+
+    except Exception as e:
+        print(f"Error checking rate limit: {e}")
+        # If there's an error, allow the invoke to proceed
+        return True, 0
+
+def get_last_invoke_info():
+    """Get information about the last invoke time"""
+    try:
+        if os.path.exists(RATE_LIMIT_FILE):
+            with open(RATE_LIMIT_FILE, 'r') as f:
+                last_invoke_time = float(f.read().strip())
+            return time.time() - last_invoke_time
+    except:
+        pass
+    return None
+
+# -------------------------
+# 3. Scrape latest news
 # -------------------------
 def scrape_article_content(article_url, headers):
     """Scrape the content of a single article"""
@@ -157,7 +201,7 @@ def scrape_wenxuecity():
         return "获取新闻时发生未知错误"
 
 # -------------------------
-# 3. Convert text to speech using AWS Polly
+# 4. Convert text to speech using AWS Polly
 # -------------------------
 def text_to_speech(text):
     """Convert text to speech using AWS Polly and return audio bytes"""
@@ -214,7 +258,7 @@ def text_to_speech(text):
         raise e
 
 # -------------------------
-# 4. Send to Telegram
+# 5. Send to Telegram
 # -------------------------
 def send_to_telegram_voice(audio_data):
     """Send audio data as voice message to Telegram"""
@@ -251,18 +295,152 @@ def send_to_telegram_voice(audio_data):
         return False
 
 # -------------------------
-# 5. Background processing function
+# 6. Lambda handler
 # -------------------------
-def process_news_async():
-    """Process news scraping and voice generation in background"""
+def lambda_handler(event, context):
+    """Main Lambda handler function - handles both sync and async processing"""
     try:
-        print("Starting background news processing...")
+        # Check if this is an async processing request
+        is_async_processing = event.get('async_processing', False)
+
+        if is_async_processing:
+            # This is the async processing invocation
+            print("Processing async request - starting news generation...")
+
+            # Process news synchronously in this invocation
+            news_text = scrape_wenxuecity()
+            if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
+                print(f"Failed to scrape news: {news_text}")
+                return {
+                    "statusCode": 500,
+                    "body": json.dumps({
+                        "message": "Failed to scrape news in async processing",
+                        "error": news_text
+                    })
+                }
+
+            print(f"Successfully scraped news: {len(news_text)} characters")
+
+            # Convert to speech
+            audio_data = text_to_speech(news_text)
+            print("Successfully converted text to speech")
+
+            # Send to Telegram if configured
+            telegram_sent = False
+            if TELEGRAM_TOKEN and CHAT_ID:
+                telegram_sent = send_to_telegram_voice(audio_data)
+
+            print(f"Async processing completed. Telegram sent: {telegram_sent}")
+
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "Async processing completed",
+                    "telegram_sent": telegram_sent,
+                    "audio_size": len(audio_data)
+                })
+            }
+
+        else:
+            # This is the initial user request
+            print("Lambda function invoked - checking rate limit...")
+
+            # Check rate limiting
+            can_invoke, remaining_time = check_rate_limit()
+            if not can_invoke:
+                return {
+                    "statusCode": 429,  # Too Many Requests
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*"
+                    },
+                    "body": json.dumps({
+                        "message": "Rate limit exceeded. Please wait before invoking again.",
+                        "error": "TOO_MANY_REQUESTS",
+                        "remaining_time_seconds": int(remaining_time),
+                        "retry_after_seconds": int(remaining_time),
+                        "timestamp": time.time()
+                    })
+                }
+
+            print("Rate limit check passed - triggering async processing...")
+
+            # Trigger async processing by invoking this same Lambda function
+            try:
+                lambda_client = boto3.client('lambda', region_name=AWS_REGION)
+
+                # Get the current function name from context
+                function_name = context.function_name if context else 'news_lambda_function'
+
+                # Invoke this function asynchronously with async flag
+                async_payload = {
+                    'async_processing': True
+                }
+
+                response = lambda_client.invoke(
+                    FunctionName=function_name,
+                    InvocationType='Event',  # Asynchronous invocation
+                    Payload=json.dumps(async_payload)
+                )
+
+                print(f"Async Lambda invoked successfully: {response.get('StatusCode')}")
+
+            except Exception as e:
+                print(f"Failed to invoke async Lambda: {e}")
+                # Fallback to synchronous processing if async fails
+                print("Falling back to synchronous processing...")
+                return process_news_sync()
+
+            # Return immediate success response
+            return {
+                "statusCode": 200,
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                "body": json.dumps({
+                    "message": "News processing started successfully",
+                    "status": "processing",
+                    "timestamp": time.time(),
+                    "rate_limit_seconds": RATE_LIMIT_SECONDS,
+                    "note": "Async processing triggered. Check Telegram for the voice message in 1-2 minutes."
+                })
+            }
+
+    except Exception as e:
+        print(f"Lambda handler error: {e}")
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({
+                "message": "Error processing request",
+                "error": str(e),
+                "timestamp": time.time()
+            })
+        }
+
+def process_news_sync():
+    """Fallback synchronous processing function"""
+    try:
+        print("Processing news synchronously...")
 
         # Scrape news
         news_text = scrape_wenxuecity()
         if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
-            print(f"Failed to scrape news: {news_text}")
-            return
+            return {
+                "statusCode": 500,
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                "body": json.dumps({
+                    "message": "Failed to scrape news",
+                    "error": news_text
+                })
+            }
 
         print(f"Successfully scraped news: {len(news_text)} characters")
 
@@ -275,28 +453,6 @@ def process_news_async():
         if TELEGRAM_TOKEN and CHAT_ID:
             telegram_sent = send_to_telegram_voice(audio_data)
 
-        print(f"Background processing completed. Telegram sent: {telegram_sent}")
-
-    except Exception as e:
-        print(f"Background processing error: {e}")
-
-# -------------------------
-# 6. Lambda handler
-# -------------------------
-def lambda_handler(event, context):
-    """Main Lambda handler function - returns immediately and processes in background"""
-    try:
-        print("Lambda function invoked - starting background processing...")
-
-        # Start background processing in a separate thread
-        background_thread = threading.Thread(target=process_news_async)
-        background_thread.daemon = True  # Thread will not prevent Lambda from shutting down
-        background_thread.start()
-
-        # Small delay to ensure thread starts
-        time.sleep(0.5)
-
-        # Return immediate success response
         return {
             "statusCode": 200,
             "headers": {
@@ -304,15 +460,14 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Origin": "*"
             },
             "body": json.dumps({
-                "message": "News processing started successfully",
-                "status": "processing",
-                "timestamp": time.time(),
-                "note": "Processing is running in background. Check Telegram for the voice message."
+                "message": "News processing completed successfully",
+                "news_length": len(news_text),
+                "telegram_sent": telegram_sent,
+                "audio_size": len(audio_data)
             })
         }
 
     except Exception as e:
-        print(f"Lambda handler error: {e}")
         return {
             "statusCode": 500,
             "headers": {
@@ -320,9 +475,8 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Origin": "*"
             },
             "body": json.dumps({
-                "message": "Error starting news processing",
-                "error": str(e),
-                "timestamp": time.time()
+                "message": "Error processing news",
+                "error": str(e)
             })
         }
 
