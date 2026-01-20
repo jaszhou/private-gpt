@@ -92,12 +92,6 @@ if aws lambda get-function --function-name "$FUNCTION_NAME" &> /dev/null; then
         --function-name "$FUNCTION_NAME" \
         --zip-file fileb://news-lambda-function.zip
 
-    echo "Updating function configuration..."
-    aws lambda update-function-configuration \
-        --function-name "$FUNCTION_NAME" \
-        --timeout 300 \
-        --memory-size 512 \
-        --environment Variables="{\"AWS_REGION\":\"$AWS_REGION\",\"VOICE_ID\":\"Zhiyu\"}"
 else
     echo "Creating new Lambda function..."
     aws lambda create-function \
