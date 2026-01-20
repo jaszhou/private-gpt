@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import boto3
 import os
 from io import BytesIO
+import threading
+import time
 
 # -------------------------
 # 1. Configuration
@@ -203,9 +205,9 @@ def text_to_speech(text):
         if len(audio_chunks) == 1:
             return audio_chunks[0]
         else:
-            # For multiple chunks, we'll return the first chunk
-            # In a real implementation, you'd want to properly combine the audio
-            return audio_chunks[0]
+            # Concatenate all audio chunks into a single audio file
+            combined_audio = b''.join(audio_chunks)
+            return combined_audio
 
     except Exception as e:
         print(f"Error in text_to_speech: {e}")
@@ -249,23 +251,18 @@ def send_to_telegram_voice(audio_data):
         return False
 
 # -------------------------
-# 5. Lambda handler
+# 5. Background processing function
 # -------------------------
-def lambda_handler(event, context):
-    """Main Lambda handler function"""
+def process_news_async():
+    """Process news scraping and voice generation in background"""
     try:
-        print("Starting news scraping and voice generation...")
+        print("Starting background news processing...")
 
         # Scrape news
         news_text = scrape_wenxuecity()
         if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
-            return {
-                "statusCode": 500,
-                "body": json.dumps({
-                    "message": "Failed to scrape news",
-                    "error": news_text
-                })
-            }
+            print(f"Failed to scrape news: {news_text}")
+            return
 
         print(f"Successfully scraped news: {len(news_text)} characters")
 
@@ -278,14 +275,39 @@ def lambda_handler(event, context):
         if TELEGRAM_TOKEN and CHAT_ID:
             telegram_sent = send_to_telegram_voice(audio_data)
 
-        # Return success response
+        print(f"Background processing completed. Telegram sent: {telegram_sent}")
+
+    except Exception as e:
+        print(f"Background processing error: {e}")
+
+# -------------------------
+# 6. Lambda handler
+# -------------------------
+def lambda_handler(event, context):
+    """Main Lambda handler function - returns immediately and processes in background"""
+    try:
+        print("Lambda function invoked - starting background processing...")
+
+        # Start background processing in a separate thread
+        background_thread = threading.Thread(target=process_news_async)
+        background_thread.daemon = True  # Thread will not prevent Lambda from shutting down
+        background_thread.start()
+
+        # Small delay to ensure thread starts
+        time.sleep(0.5)
+
+        # Return immediate success response
         return {
             "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             "body": json.dumps({
-                "message": "News processing completed successfully",
-                "news_length": len(news_text),
-                "telegram_sent": telegram_sent,
-                "audio_size": len(audio_data)
+                "message": "News processing started successfully",
+                "status": "processing",
+                "timestamp": time.time(),
+                "note": "Processing is running in background. Check Telegram for the voice message."
             })
         }
 
@@ -293,9 +315,14 @@ def lambda_handler(event, context):
         print(f"Lambda handler error: {e}")
         return {
             "statusCode": 500,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             "body": json.dumps({
-                "message": "Error processing news",
-                "error": str(e)
+                "message": "Error starting news processing",
+                "error": str(e),
+                "timestamp": time.time()
             })
         }
 

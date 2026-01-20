@@ -177,17 +177,17 @@ def text_to_speech(text, mp3_file):
 # -------------------------
 # 4. Convert MP3 → OGG/Opus for Telegram voice
 # -------------------------
-# def convert_mp3_to_ogg(mp3_file, ogg_file):
-#     audio = AudioSegment.from_file(mp3_file, format="mp3")
-#     audio.export(ogg_file, format='ogg', codec='libopus')
+def convert_mp3_to_ogg(mp3_file, ogg_file):
+    audio = AudioSegment.from_file(mp3_file, format="mp3")
+    audio.export(ogg_file, format='ogg', codec='libopus')
 
 # -------------------------
 # 5. Send to Telegram
 # -------------------------
-# def send_to_telegram_voice(ogg_file):
-#     bot = Bot(token=TELEGRAM_TOKEN)
-#     with open(ogg_file, 'rb') as f:
-#         bot.send_voice(chat_id=CHAT_ID, voice=f, caption="📰 最新新闻语音")
+def send_to_telegram_voice(ogg_file):
+    bot = Bot(token=TELEGRAM_TOKEN)
+    with open(ogg_file, 'rb') as f:
+        bot.send_voice(chat_id=CHAT_ID, voice=f, caption="📰 最新新闻语音")
 
 # -------------------------
 # 6. Lambda handler
@@ -199,7 +199,7 @@ def lambda_handler(event, context):
 
     text_to_speech(news_text, TMP_MP3)
     convert_mp3_to_ogg(TMP_MP3, TMP_OGG)
-    # send_to_telegram_voice(TMP_OGG)
+    send_to_telegram_voice(TMP_OGG)
 
     return {"statusCode": 200, "body": "News sent successfully."}
 
