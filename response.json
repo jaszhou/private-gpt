@@ -1,0 +1,1 @@
+{"statusCode": 200, "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"}, "body": "{\"message\": \"News processing completed successfully\", \"news_length\": 13005, \"telegram_sent\": true, \"audio_size\": 16796222}"}

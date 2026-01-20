@@ -28,7 +28,7 @@ echo "Copying Lambda function code..."
 cp ../news_lambda_function.py lambda_function.py
 
 echo "Installing Python dependencies..."
-pip install requests beautifulsoup4 boto3 urllib3 --target .
+pip3 install requests beautifulsoup4 boto3 urllib3 --target .
 
 echo "Creating deployment package..."
 zip -r ../news-lambda-function.zip . -x "*.pyc" "*/__pycache__/*"

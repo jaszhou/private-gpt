@@ -92,7 +92,7 @@ def scrape_article_content(article_url, headers):
                 if paragraphs:
                     content = ' '.join([p.get_text(strip=True) for p in paragraphs[:5]])  # First 5 paragraphs
                 else:
-                    content = content_div.get_text(strip=True)
+                    content = content_div.get_text(strip=True)[:2000]  # First 2000 chars
                 break
 
         # Fallback: get any substantial text content
@@ -109,7 +109,7 @@ def scrape_article_content(article_url, headers):
             if not content:
                 content = all_text[:600] if all_text else "无法提取内容"
 
-        return content
+        return content[:2000] + "..." if len(content) > 2000 else content
 
     except Exception as e:
         print(f"Error scraping article {article_url}: {e}")
