@@ -83,15 +83,11 @@ CHAT_ID=your_chat_id         # Optional: Telegram chat ID
    aws lambda create-function \
      --function-name news-scraper-function \
      --runtime python3.9 \
-     --role arn:aws:iam::YOUR_ACCOUNT_ID:role/NewsLambdaRole \
+     --role arn:aws:iam::647207328002:role/NewsLambdaRole \
      --handler lambda_function.lambda_handler \
      --zip-file fileb://news-lambda-function.zip \
      --timeout 300 \
-     --memory-size 512 \
-     --environment Variables='{
-       "AWS_REGION":"us-east-1",
-       "VOICE_ID":"Zhiyu"
-     }'
+     --memory-size 512 
    ```
 
 4. **Update function code (for updates):**
@@ -206,3 +202,7 @@ Estimated monthly cost for 4 executions per day: ~$5-10 USD
 2. Use least-privilege IAM policies
 3. Consider VPC deployment for enhanced security
 4. Enable CloudTrail for audit logging
+
+Function URL:  
+
+https://v4kjkzozvkwhwssfmx2nuayzmm0vagpr.lambda-url.ap-southeast-2.on.aws/
