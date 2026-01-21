@@ -8,6 +8,7 @@ import botocore
 import os
 from io import BytesIO
 import time
+from readability import Document
 
 # -------------------------
 # 1. Configuration
@@ -18,7 +19,9 @@ TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
 # Bedrock configuration
-BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+# BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+BEDROCK_MODEL_ID = "amazon.titan-embed-text-v2:0"
+
 MAX_SSML_LEN = 2800
 POLLY_ENGINE = "neural"
 
@@ -40,46 +43,29 @@ def fetch_html(url):
     return r.text
 
 
-def extract_article_with_bedrock(html_text):
+def extract_article_with_readability(html_text):
     """
-    Use Bedrock (Claude) to extract clean article text
+    Use Readability to extract clean article text
     """
-    bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
-
-    prompt = f"""
-Extract the main news article from the HTML below.
-
-Rules:
-- Ignore ads, navigation, comments, footers
-- Keep original language
-- Output plain text only
-- No HTML tags
-- No markdown
-- No explanations
-
-HTML:
-{html_text[:15000]}
-"""
-
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 2048,
-        "temperature": 0,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    }
-
-    response = bedrock.invoke_model(
-        modelId=BEDROCK_MODEL_ID,
-        body=json.dumps(body)
-    )
-
-    result = json.loads(response["body"].read())
-    return result["content"][0]["text"].strip()
+    doc = Document(html_text)
+    
+    # Get the main content
+    content = doc.summary()
+    
+    # Parse with BeautifulSoup to extract text
+    soup = BeautifulSoup(content, 'html.parser')
+    
+    # Remove any remaining unwanted elements
+    for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+        element.decompose()
+    
+    # Get clean text
+    text = soup.get_text(separator=' ', strip=True)
+    
+    # Clean up whitespace
+    text = re.sub(r'\s+', ' ', text)
+    
+    return text.strip()
 
 
 def sanitize_for_ssml(text):
@@ -148,7 +134,7 @@ def get_last_invoke_info():
 # 4. Scrape latest news
 # -------------------------
 def scrape_article_content(article_url):
-    """Scrape the content of a single article using Bedrock AI extraction"""
+    """Scrape the content of a single article using Readability extraction"""
     try:
         # Ensure URL is absolute
         if article_url.startswith('/'):
@@ -156,28 +142,20 @@ def scrape_article_content(article_url):
         elif not article_url.startswith('http'):
             article_url = 'https://www.wenxuecity.com/' + article_url
 
-        # Fetch HTML using the same method as GPT.py
+        # Fetch HTML
         html_text = fetch_html(article_url)
 
-        # Use Bedrock AI to extract clean article text
-        # article_text = extract_article_with_bedrock(html_text)
-        article_text = html_text
+        # Use Readability to extract clean article text
+        article_text = extract_article_with_readability(html_text)
 
         if not article_text:
-            raise Exception("Bedrock returned empty article text")
+            raise Exception("Readability returned empty article text")
 
         return article_text[:2000] + "..." if len(article_text) > 2000 else article_text
 
     except requests.exceptions.RequestException as e:
         print(f"Network error scraping article {article_url}: {e}")
         return "网络连接错误，无法获取文章内容"
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'AccessDeniedException':
-            print(f"Bedrock access denied for article {article_url}: {e}")
-            return "内容获取失败: 缺少Bedrock访问权限"
-        else:
-            print(f"AWS error scraping article {article_url}: {e}")
-            return f"内容获取失败: AWS服务错误"
     except Exception as e:
         print(f"Error scraping article {article_url}: {e}")
         return f"内容获取失败: {str(e)}"
