@@ -4,11 +4,9 @@ import html
 import requests
 from bs4 import BeautifulSoup
 import boto3
-import botocore
 import os
 from io import BytesIO
 import time
-from readability import Document
 
 # -------------------------
 # 1. Configuration
@@ -18,79 +16,12 @@ VOICE_ID = os.environ.get('VOICE_ID', 'Zhiyu')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
-# Bedrock configuration
-# BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
-BEDROCK_MODEL_ID = "amazon.titan-embed-text-v2:0"
-
-MAX_SSML_LEN = 2800
-POLLY_ENGINE = "neural"
-
 # Rate limiting configuration
 RATE_LIMIT_FILE = '/tmp/last_invoke_time.txt' if os.name != 'nt' else 'last_invoke_time.txt'
 RATE_LIMIT_SECONDS = 60  # 1 minute
 
 # -------------------------
-# 2. Helper Functions
-# -------------------------
-
-def fetch_html(url):
-    """Fetch HTML content from a URL"""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"
-    }
-    r = requests.get(url, headers=headers, timeout=15)
-    r.raise_for_status()
-    return r.text
-
-
-def extract_article_with_readability(html_text):
-    """
-    Use Readability to extract clean article text
-    """
-    doc = Document(html_text)
-    
-    # Get the main content
-    content = doc.summary()
-    
-    # Parse with BeautifulSoup to extract text
-    soup = BeautifulSoup(content, 'html.parser')
-    
-    # Remove any remaining unwanted elements
-    for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
-        element.decompose()
-    
-    # Get clean text
-    text = soup.get_text(separator=' ', strip=True)
-    
-    # Clean up whitespace
-    text = re.sub(r'\s+', ' ', text)
-    
-    return text.strip()
-
-
-def sanitize_for_ssml(text):
-    """
-    Make text 100% safe for Amazon Polly SSML
-    """
-    text = re.sub(r'[\r\n]+', ' ', text)
-    text = re.sub(r'\s{2,}', ' ', text)
-    text = html.escape(text)
-    return text.strip()
-
-
-def build_ssml_chunks(text):
-    """
-    Split into Polly-safe SSML chunks
-    """
-    chunks = [
-        text[i:i + MAX_SSML_LEN]
-        for i in range(0, len(text), MAX_SSML_LEN)
-    ]
-    return [f"<speak>{chunk}</speak>" for chunk in chunks]
-
-
-# -------------------------
-# 3. Rate Limiting Functions
+# 2. Rate Limiting Functions
 # -------------------------
 def check_rate_limit():
     """Check if function can be invoked based on rate limiting"""
@@ -131,10 +62,10 @@ def get_last_invoke_info():
     return None
 
 # -------------------------
-# 4. Scrape latest news
+# 3. Scrape latest news
 # -------------------------
-def scrape_article_content(article_url):
-    """Scrape the content of a single article using Readability extraction"""
+def scrape_article_content(article_url, headers):
+    """Scrape the content of a single article"""
     try:
         # Ensure URL is absolute
         if article_url.startswith('/'):
@@ -142,23 +73,49 @@ def scrape_article_content(article_url):
         elif not article_url.startswith('http'):
             article_url = 'https://www.wenxuecity.com/' + article_url
 
-        # Fetch HTML
-        html_text = fetch_html(article_url)
+        response = requests.get(article_url, headers=headers, timeout=15, verify=False)
+        response.raise_for_status()
 
-        # Use Readability to extract clean article text
-        article_text = extract_article_with_readability(html_text)
+        soup = BeautifulSoup(response.content, 'html.parser')
 
-        if not article_text:
-            raise Exception("Readability returned empty article text")
+        # Try different selectors to find article content
+        content_selectors = [
+            'div.content', 'div.article-content', 'div.news-content',
+            'div[class*="content"]', 'div[class*="article"]',
+            'article', 'main', 'div.text'
+        ]
 
-        return article_text[:2000] + "..." if len(article_text) > 2000 else article_text
+        content = ""
+        for selector in content_selectors:
+            content_div = soup.select_one(selector)
+            if content_div:
+                # Extract text and clean it
+                paragraphs = content_div.find_all(['p', 'div'])
+                if paragraphs:
+                    content = ' '.join([p.get_text(strip=True) for p in paragraphs[:5]])  # First 5 paragraphs
+                else:
+                    content = content_div.get_text(strip=True)[:2000]  # First 2000 chars
+                break
 
-    except requests.exceptions.RequestException as e:
-        print(f"Network error scraping article {article_url}: {e}")
-        return "网络连接错误，无法获取文章内容"
+        # Fallback: get any substantial text content
+        if not content or len(content) < 50:
+            all_text = soup.get_text(strip=True)
+            # Find content after common navigation elements
+            start_markers = ['新闻', '报道', '消息', '据']
+            for marker in start_markers:
+                if marker in all_text:
+                    start_idx = all_text.find(marker)
+                    content = all_text[start_idx:start_idx+600]
+                    break
+
+            if not content:
+                content = all_text[:600] if all_text else "无法提取内容"
+
+        return content[:2000] + "..." if len(content) > 2000 else content
+
     except Exception as e:
         print(f"Error scraping article {article_url}: {e}")
-        return f"内容获取失败: {str(e)}"
+        return "内容获取失败"
 
 def scrape_wenxuecity():
     url = "https://www.wenxuecity.com/news/"
@@ -226,7 +183,7 @@ def scrape_wenxuecity():
         for i, article in enumerate(article_links, 1):
             print(f"Scraping article {i}/10: {article['title'][:50]}...")
 
-            content = scrape_article_content(article['url'])
+            content = scrape_article_content(article['url'], headers)
 
             # Create a summary format
             article_summary = f"""
@@ -246,42 +203,49 @@ def scrape_wenxuecity():
         return "获取新闻时发生未知错误"
 
 # -------------------------
-# 5. Convert text to speech using AWS Polly
+# 4. Convert text to speech using AWS Polly
 # -------------------------
-def synthesize_with_polly(ssml_chunks):
-    """
-    Convert SSML chunks to MP3 files
-    """
-    polly = boto3.client('polly', region_name=AWS_REGION)
-    audio_chunks = []
-
-    for i, ssml in enumerate(ssml_chunks):
-        response = polly.synthesize_speech(
-            Engine=POLLY_ENGINE,
-            VoiceId=VOICE_ID,
-            OutputFormat="mp3",
-            TextType="ssml",
-            Text=ssml
-        )
-
-        # Read audio data directly into memory
-        audio_data = response["AudioStream"].read()
-        audio_chunks.append(audio_data)
-
-    return audio_chunks
-
-
 def text_to_speech(text):
     """Convert text to speech using AWS Polly and return audio bytes"""
     try:
-        # Sanitize for SSML
-        safe_text = sanitize_for_ssml(text)
+        polly = boto3.client('polly', region_name=AWS_REGION)
 
-        # Build SSML chunks
-        ssml_chunks = build_ssml_chunks(safe_text)
+        # Split text into chunks if it's too long (Polly has a 3000 character limit)
+        max_chars = 2800  # Leave some buffer
+        text_chunks = []
 
-        # Polly synthesis
-        audio_chunks = synthesize_with_polly(ssml_chunks)
+        if len(text) <= max_chars:
+            text_chunks = [text]
+        else:
+            # Split by sentences or paragraphs
+            sentences = text.split('。')
+            current_chunk = ""
+
+            for sentence in sentences:
+                if len(current_chunk + sentence + '。') <= max_chars:
+                    current_chunk += sentence + '。'
+                else:
+                    if current_chunk:
+                        text_chunks.append(current_chunk)
+                    current_chunk = sentence + '。'
+
+            if current_chunk:
+                text_chunks.append(current_chunk)
+
+        # Convert each chunk to audio and combine
+        audio_chunks = []
+        for i, chunk in enumerate(text_chunks):
+            print(f"Processing text chunk {i+1}/{len(text_chunks)}")
+            ssml_text = "<speak>" + chunk.replace("\n", "<break time='700ms'/>") + "</speak>"
+
+            response = polly.synthesize_speech(
+                Text=ssml_text,
+                TextType='ssml',
+                OutputFormat='mp3',
+                VoiceId=VOICE_ID
+            )
+
+            audio_chunks.append(response['AudioStream'].read())
 
         # If multiple chunks, combine them (simple concatenation for MP3)
         if len(audio_chunks) == 1:
@@ -296,7 +260,7 @@ def text_to_speech(text):
         raise e
 
 # -------------------------
-# 6. Send to Telegram
+# 5. Send to Telegram
 # -------------------------
 def send_to_telegram_voice(audio_data):
     """Send audio data as voice message to Telegram"""
@@ -332,142 +296,47 @@ def send_to_telegram_voice(audio_data):
         print(f"Error sending to Telegram: {e}")
         return False
 
+def sanitize_for_ssml(text):
+    """
+    Make text 100% safe for Amazon Polly SSML
+    """
+    text = re.sub(r'[\r\n]+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    text = html.escape(text)
+    return text.strip()
+
 # -------------------------
-# 7. Lambda handler
+# 6. Lambda handler
 # -------------------------
 def lambda_handler(event, context):
-    """Main Lambda handler function - handles both sync and async processing"""
+    """Main Lambda handler function - synchronous processing only"""
     try:
-        # Check if this is an async processing request
-        is_async_processing = event.get('async_processing', False)
+        print("Lambda function invoked - checking rate limit...")
 
-        if is_async_processing:
-            # This is the async processing invocation
-            print("Processing async request - starting news generation...")
-
-            # Process news synchronously in this invocation
-            news_text = scrape_wenxuecity()
-            if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
-                print(f"Failed to scrape news: {news_text}")
-                return {
-                    "statusCode": 500,
-                    "body": json.dumps({
-                        "message": "Failed to scrape news in async processing",
-                        "error": news_text
-                    })
-                }
-
-            print(f"Successfully scraped news: {len(news_text)} characters")
-
-            # Convert to speech
-            audio_data = text_to_speech(news_text)
-            print("Successfully converted text to speech")
-
-            # Send to Telegram if configured
-            telegram_sent = False
-            if TELEGRAM_TOKEN and CHAT_ID:
-                telegram_sent = send_to_telegram_voice(audio_data)
-
-            print(f"Async processing completed. Telegram sent: {telegram_sent}")
-
+        # Check rate limiting
+        can_invoke, remaining_time = check_rate_limit()
+        if not can_invoke:
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": "Async processing completed",
-                    "telegram_sent": telegram_sent,
-                    "audio_size": len(audio_data)
-                })
-            }
-
-        else:
-            # This is the initial user request
-            print("Lambda function invoked - checking rate limit...")
-
-            # Check rate limiting
-            can_invoke, remaining_time = check_rate_limit()
-            if not can_invoke:
-                return {
-                    "statusCode": 429,  # Too Many Requests
-                    "headers": {
-                        "Content-Type": "application/json",
-                        "Access-Control-Allow-Origin": "*"
-                    },
-                    "body": json.dumps({
-                        "message": "Rate limit exceeded. Please wait before invoking again.",
-                        "error": "TOO_MANY_REQUESTS",
-                        "remaining_time_seconds": int(remaining_time),
-                        "retry_after_seconds": int(remaining_time),
-                        "timestamp": time.time()
-                    })
-                }
-
-            print("Rate limit check passed - triggering async processing...")
-
-            # Trigger async processing by invoking this same Lambda function
-            try:
-                lambda_client = boto3.client('lambda', region_name=AWS_REGION)
-
-                # Get the current function name from context
-                function_name = context.function_name if context else 'news_lambda_function'
-
-                # Invoke this function asynchronously with async flag
-                async_payload = {
-                    'async_processing': True
-                }
-
-                response = lambda_client.invoke(
-                    FunctionName=function_name,
-                    InvocationType='Event',  # Asynchronous invocation
-                    Payload=json.dumps(async_payload)
-                )
-
-                print(f"Async Lambda invoked successfully: {response.get('StatusCode')}")
-
-            except Exception as e:
-                print(f"Failed to invoke async Lambda: {e}")
-                # Fallback to synchronous processing if async fails
-                print("Falling back to synchronous processing...")
-                return process_news_sync()
-
-            # Return immediate success response
-            return {
-                "statusCode": 200,
+                "statusCode": 429,  # Too Many Requests
                 "headers": {
                     "Content-Type": "application/json",
                     "Access-Control-Allow-Origin": "*"
                 },
                 "body": json.dumps({
-                    "message": "News processing started successfully",
-                    "status": "processing",
-                    "timestamp": time.time(),
-                    "rate_limit_seconds": RATE_LIMIT_SECONDS,
-                    "note": "Async processing triggered. Check Telegram for the voice message in 1-2 minutes."
+                    "message": "Rate limit exceeded. Please wait before invoking again.",
+                    "error": "TOO_MANY_REQUESTS",
+                    "remaining_time_seconds": int(remaining_time),
+                    "retry_after_seconds": int(remaining_time),
+                    "timestamp": time.time()
                 })
             }
 
-    except Exception as e:
-        print(f"Lambda handler error: {e}")
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps({
-                "message": "Error processing request",
-                "error": str(e),
-                "timestamp": time.time()
-            })
-        }
+        print("Rate limit check passed - processing news...")
 
-def process_news_sync():
-    """Fallback synchronous processing function"""
-    try:
-        print("Processing news synchronously...")
-
-        # Scrape news
+        # Process news synchronously
         news_text = scrape_wenxuecity()
         if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
+            print(f"Failed to scrape news: {news_text}")
             return {
                 "statusCode": 500,
                 "headers": {
@@ -483,13 +352,15 @@ def process_news_sync():
         print(f"Successfully scraped news: {len(news_text)} characters")
 
         # Convert to speech
-        audio_data = text_to_speech(news_text)
+        audio_data = text_to_speech(sanitize_for_ssml(news_text))
         print("Successfully converted text to speech")
 
         # Send to Telegram if configured
         telegram_sent = False
         if TELEGRAM_TOKEN and CHAT_ID:
             telegram_sent = send_to_telegram_voice(audio_data)
+
+        print(f"Processing completed. Telegram sent: {telegram_sent}")
 
         return {
             "statusCode": 200,
@@ -501,11 +372,13 @@ def process_news_sync():
                 "message": "News processing completed successfully",
                 "news_length": len(news_text),
                 "telegram_sent": telegram_sent,
-                "audio_size": len(audio_data)
+                "audio_size": len(audio_data),
+                "timestamp": time.time()
             })
         }
 
     except Exception as e:
+        print(f"Lambda handler error: {e}")
         return {
             "statusCode": 500,
             "headers": {
@@ -513,8 +386,9 @@ def process_news_sync():
                 "Access-Control-Allow-Origin": "*"
             },
             "body": json.dumps({
-                "message": "Error processing news",
-                "error": str(e)
+                "message": "Error processing request",
+                "error": str(e),
+                "timestamp": time.time()
             })
         }
 
