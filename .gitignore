@@ -1,7 +1,8 @@
 .venv
 .env
 venv
-
+*.tgz
+Python*
 settings-me.yaml
 
 .ruff_cache

@@ -4,6 +4,7 @@ import html
 import requests
 from bs4 import BeautifulSoup
 import boto3
+import botocore
 import os
 from io import BytesIO
 import time
@@ -159,16 +160,27 @@ def scrape_article_content(article_url):
         html_text = fetch_html(article_url)
 
         # Use Bedrock AI to extract clean article text
-        article_text = extract_article_with_bedrock(html_text)
+        # article_text = extract_article_with_bedrock(html_text)
+        article_text = html_text
 
         if not article_text:
             raise Exception("Bedrock returned empty article text")
 
         return article_text[:2000] + "..." if len(article_text) > 2000 else article_text
 
+    except requests.exceptions.RequestException as e:
+        print(f"Network error scraping article {article_url}: {e}")
+        return "网络连接错误，无法获取文章内容"
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'AccessDeniedException':
+            print(f"Bedrock access denied for article {article_url}: {e}")
+            return "内容获取失败: 缺少Bedrock访问权限"
+        else:
+            print(f"AWS error scraping article {article_url}: {e}")
+            return f"内容获取失败: AWS服务错误"
     except Exception as e:
         print(f"Error scraping article {article_url}: {e}")
-        return "内容获取失败"
+        return f"内容获取失败: {str(e)}"
 
 def scrape_wenxuecity():
     url = "https://www.wenxuecity.com/news/"
@@ -541,3 +553,5 @@ if __name__ == "__main__":
 
     result = lambda_handler(test_event, test_context)
     print("Lambda result:", result)
+
+    # scrape_wenxuecity()
