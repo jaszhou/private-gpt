@@ -1,4 +1,6 @@
 import json
+import re
+import html
 import requests
 from bs4 import BeautifulSoup
 import boto3
@@ -14,12 +16,94 @@ VOICE_ID = os.environ.get('VOICE_ID', 'Zhiyu')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
+# Bedrock configuration
+BEDROCK_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+MAX_SSML_LEN = 2800
+POLLY_ENGINE = "neural"
+
 # Rate limiting configuration
 RATE_LIMIT_FILE = '/tmp/last_invoke_time.txt' if os.name != 'nt' else 'last_invoke_time.txt'
 RATE_LIMIT_SECONDS = 60  # 1 minute
 
 # -------------------------
-# 2. Rate Limiting Functions
+# 2. Helper Functions
+# -------------------------
+
+def fetch_html(url):
+    """Fetch HTML content from a URL"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"
+    }
+    r = requests.get(url, headers=headers, timeout=15)
+    r.raise_for_status()
+    return r.text
+
+
+def extract_article_with_bedrock(html_text):
+    """
+    Use Bedrock (Claude) to extract clean article text
+    """
+    bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+
+    prompt = f"""
+Extract the main news article from the HTML below.
+
+Rules:
+- Ignore ads, navigation, comments, footers
+- Keep original language
+- Output plain text only
+- No HTML tags
+- No markdown
+- No explanations
+
+HTML:
+{html_text[:15000]}
+"""
+
+    body = {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 2048,
+        "temperature": 0,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    }
+
+    response = bedrock.invoke_model(
+        modelId=BEDROCK_MODEL_ID,
+        body=json.dumps(body)
+    )
+
+    result = json.loads(response["body"].read())
+    return result["content"][0]["text"].strip()
+
+
+def sanitize_for_ssml(text):
+    """
+    Make text 100% safe for Amazon Polly SSML
+    """
+    text = re.sub(r'[\r\n]+', ' ', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    text = html.escape(text)
+    return text.strip()
+
+
+def build_ssml_chunks(text):
+    """
+    Split into Polly-safe SSML chunks
+    """
+    chunks = [
+        text[i:i + MAX_SSML_LEN]
+        for i in range(0, len(text), MAX_SSML_LEN)
+    ]
+    return [f"<speak>{chunk}</speak>" for chunk in chunks]
+
+
+# -------------------------
+# 3. Rate Limiting Functions
 # -------------------------
 def check_rate_limit():
     """Check if function can be invoked based on rate limiting"""
@@ -60,10 +144,10 @@ def get_last_invoke_info():
     return None
 
 # -------------------------
-# 3. Scrape latest news
+# 4. Scrape latest news
 # -------------------------
-def scrape_article_content(article_url, headers):
-    """Scrape the content of a single article"""
+def scrape_article_content(article_url):
+    """Scrape the content of a single article using Bedrock AI extraction"""
     try:
         # Ensure URL is absolute
         if article_url.startswith('/'):
@@ -71,45 +155,16 @@ def scrape_article_content(article_url, headers):
         elif not article_url.startswith('http'):
             article_url = 'https://www.wenxuecity.com/' + article_url
 
-        response = requests.get(article_url, headers=headers, timeout=15, verify=False)
-        response.raise_for_status()
+        # Fetch HTML using the same method as GPT.py
+        html_text = fetch_html(article_url)
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # Use Bedrock AI to extract clean article text
+        article_text = extract_article_with_bedrock(html_text)
 
-        # Try different selectors to find article content
-        content_selectors = [
-            'div.content', 'div.article-content', 'div.news-content',
-            'div[class*="content"]', 'div[class*="article"]',
-            'article', 'main', 'div.text'
-        ]
+        if not article_text:
+            raise Exception("Bedrock returned empty article text")
 
-        content = ""
-        for selector in content_selectors:
-            content_div = soup.select_one(selector)
-            if content_div:
-                # Extract text and clean it
-                paragraphs = content_div.find_all(['p', 'div'])
-                if paragraphs:
-                    content = ' '.join([p.get_text(strip=True) for p in paragraphs[:5]])  # First 5 paragraphs
-                else:
-                    content = content_div.get_text(strip=True)[:2000]  # First 2000 chars
-                break
-
-        # Fallback: get any substantial text content
-        if not content or len(content) < 50:
-            all_text = soup.get_text(strip=True)
-            # Find content after common navigation elements
-            start_markers = ['新闻', '报道', '消息', '据']
-            for marker in start_markers:
-                if marker in all_text:
-                    start_idx = all_text.find(marker)
-                    content = all_text[start_idx:start_idx+600]
-                    break
-
-            if not content:
-                content = all_text[:600] if all_text else "无法提取内容"
-
-        return content[:2000] + "..." if len(content) > 2000 else content
+        return article_text[:2000] + "..." if len(article_text) > 2000 else article_text
 
     except Exception as e:
         print(f"Error scraping article {article_url}: {e}")
@@ -181,7 +236,7 @@ def scrape_wenxuecity():
         for i, article in enumerate(article_links, 1):
             print(f"Scraping article {i}/10: {article['title'][:50]}...")
 
-            content = scrape_article_content(article['url'], headers)
+            content = scrape_article_content(article['url'])
 
             # Create a summary format
             article_summary = f"""
@@ -201,49 +256,42 @@ def scrape_wenxuecity():
         return "获取新闻时发生未知错误"
 
 # -------------------------
-# 4. Convert text to speech using AWS Polly
+# 5. Convert text to speech using AWS Polly
 # -------------------------
+def synthesize_with_polly(ssml_chunks):
+    """
+    Convert SSML chunks to MP3 files
+    """
+    polly = boto3.client('polly', region_name=AWS_REGION)
+    audio_chunks = []
+
+    for i, ssml in enumerate(ssml_chunks):
+        response = polly.synthesize_speech(
+            Engine=POLLY_ENGINE,
+            VoiceId=VOICE_ID,
+            OutputFormat="mp3",
+            TextType="ssml",
+            Text=ssml
+        )
+
+        # Read audio data directly into memory
+        audio_data = response["AudioStream"].read()
+        audio_chunks.append(audio_data)
+
+    return audio_chunks
+
+
 def text_to_speech(text):
     """Convert text to speech using AWS Polly and return audio bytes"""
     try:
-        polly = boto3.client('polly', region_name=AWS_REGION)
+        # Sanitize for SSML
+        safe_text = sanitize_for_ssml(text)
 
-        # Split text into chunks if it's too long (Polly has a 3000 character limit)
-        max_chars = 2800  # Leave some buffer
-        text_chunks = []
+        # Build SSML chunks
+        ssml_chunks = build_ssml_chunks(safe_text)
 
-        if len(text) <= max_chars:
-            text_chunks = [text]
-        else:
-            # Split by sentences or paragraphs
-            sentences = text.split('。')
-            current_chunk = ""
-
-            for sentence in sentences:
-                if len(current_chunk + sentence + '。') <= max_chars:
-                    current_chunk += sentence + '。'
-                else:
-                    if current_chunk:
-                        text_chunks.append(current_chunk)
-                    current_chunk = sentence + '。'
-
-            if current_chunk:
-                text_chunks.append(current_chunk)
-
-        # Convert each chunk to audio and combine
-        audio_chunks = []
-        for i, chunk in enumerate(text_chunks):
-            print(f"Processing text chunk {i+1}/{len(text_chunks)}")
-            ssml_text = "<speak>" + chunk.replace("\n", "<break time='700ms'/>") + "</speak>"
-
-            response = polly.synthesize_speech(
-                Text=ssml_text,
-                TextType='ssml',
-                OutputFormat='mp3',
-                VoiceId=VOICE_ID
-            )
-
-            audio_chunks.append(response['AudioStream'].read())
+        # Polly synthesis
+        audio_chunks = synthesize_with_polly(ssml_chunks)
 
         # If multiple chunks, combine them (simple concatenation for MP3)
         if len(audio_chunks) == 1:
@@ -258,7 +306,7 @@ def text_to_speech(text):
         raise e
 
 # -------------------------
-# 5. Send to Telegram
+# 6. Send to Telegram
 # -------------------------
 def send_to_telegram_voice(audio_data):
     """Send audio data as voice message to Telegram"""
@@ -295,7 +343,7 @@ def send_to_telegram_voice(audio_data):
         return False
 
 # -------------------------
-# 6. Lambda handler
+# 7. Lambda handler
 # -------------------------
 def lambda_handler(event, context):
     """Main Lambda handler function - handles both sync and async processing"""
