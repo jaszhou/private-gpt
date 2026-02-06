@@ -321,6 +321,8 @@ def upload_file():
             return jsonify({"status": "error", "message": "No file provided"}), 400
         if not key_id:
             return jsonify({"status": "error", "message": "No key ID provided"}), 400
+        if not file.filename:
+            return jsonify({"status": "error", "message": "No filename provided"}), 400
         
         # Log file info from request
         logger.debug(f"Uploaded file content-type from request: {file.content_type}")
@@ -339,43 +341,39 @@ def upload_file():
         
         # S3 key: uploads/key_id/filename
         s3_key = f"{parent_folder}/{key_id}/{filename}"
-        
-        # Ensure file pointer at start
-        file.seek(0)
-        
-        # Debug: log first few bytes for PDF verification
-        first_bytes = file.read(4)
-        file.seek(0)  # reset
+
+        # Check file size first by seeking to end
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)     # Reset to beginning
+
+        # Check file size limit early
+        if file_size > MAX_FILE_SIZE:
+            return jsonify({"status": "error", "message": f"File size exceeds limit of {MAX_FILE_SIZE // (1024*1024)} MB"}), 400
+
+        # Check for empty files early
+        if file_size == 0:
+            return jsonify({"status": "error", "message": "Empty file uploaded"}), 400
+
+        # Read file content once for hash calculation and validation
+        file_content = file.read()
+        md5_hash = hashlib.md5()
+        md5_hash.update(file_content)
+        file_hash = md5_hash.hexdigest()
+
+        # Debug: log first few bytes for file type verification
+        first_bytes = file_content[:4] if len(file_content) >= 4 else b''
         logger.debug(f"First 4 bytes of uploaded file: {first_bytes.hex() if first_bytes else 'empty'}")
         if filename.lower().endswith('.pdf') and first_bytes != b'%PDF':
             logger.warning(f"Uploaded PDF file does not start with PDF magic number; may be corrupted.")
-        
-        # Compute file size and MD5 hash for integrity verification
-        md5_hash = hashlib.md5()
-        file_size = 0
-        while True:
-            chunk = file.read(8192)  # 8KB chunks
-            if not chunk:
-                break
-            md5_hash.update(chunk)
-            file_size += len(chunk)
-        file_hash = md5_hash.hexdigest()
-        
-        # Check file size limit
-        if file_size > MAX_FILE_SIZE:
-            return jsonify({"status": "error", "message": f"File size exceeds limit of {MAX_FILE_SIZE // (1024*1024)} MB"}), 400
-        
-        # Warn about empty file
-        if file_size == 0:
-            logger.warning(f"Empty file uploaded: {filename}")
-        
-        # Seek back to start for upload
+
+        # Reset file pointer for S3 upload
         file.seek(0)
         
         # Determine content type
         content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         
-        # Upload to S3 with content type
+        # Upload to S3 with content type and metadata
         s3_client = boto3.client('s3', region_name=AWS_REGION)
         s3_client.upload_fileobj(
             file,
@@ -383,7 +381,13 @@ def upload_file():
             s3_key,
             ExtraArgs={
                 'ContentType': content_type,
-                'ContentDisposition': f'attachment; filename="{filename}"'
+                'ContentDisposition': f'attachment; filename="{filename}"',
+                'Metadata': {
+                    'original-filename': filename,
+                    'file-size': str(file_size),
+                    'md5-hash': file_hash,
+                    'key-id': key_id
+                }
             }
         )
         
@@ -400,7 +404,7 @@ def upload_file():
         download_url = s3_client.generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': s3_bucket, 'Key': s3_key},
-            ExpiresIn=3600 * 24 * 30  # 1 hour expiration
+            ExpiresIn=3600 * 24  # 24 hour expiration
         )
         
         # Save download link as content in DynamoDB messages table
