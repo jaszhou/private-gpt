@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/accessLogSettings/destinationArn",
+    "value": "arn:aws:logs:ap-southeast-2:647207328002:log-group:API-Gateway-Execution-Logs_f8do9lswp5/dev"
+  },
+  {
+    "op": "replace",
+    "path": "/accessLogSettings/format",
+    "value": "$context.identity.sourceIp $context.identity.caller $context.identity.user [$context.requestTime] \"$context.httpMethod $context.resourcePath $context.protocol\" $context.status $context.responseLength $context.requestId"
+  }
+]

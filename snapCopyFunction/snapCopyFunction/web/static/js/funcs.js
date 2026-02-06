@@ -3,11 +3,17 @@ jQuery(document).ready(function ($) {
   // $() will work as an alias for jQuery() inside of this function
 
   $(function () {
-
+    // Extract stage from path (first segment after slash)
+    var path = window.location.pathname;
+    var stage = 'dev';
+    var parts = path.split('/').filter(p => p !== '');
+    if (parts.length > 0 && ['dev', 'prod', 'test', 'staging'].includes(parts[0])) {
+      stage = parts[0];
+    }
     // load data initially for key 
     var url = window.location.pathname;
     var id = url.substring(url.lastIndexOf('/') + 1);
-    var u = '/dev/db_get/' + id;
+    var u = '/' + stage + '/db_get/' + id;
 
     if (id !== null && id !== undefined) {
 
@@ -112,7 +118,7 @@ jQuery(document).ready(function ($) {
 
 
 
-      $.post("/dev/db_add",
+      $.post("/" + stage + "/db_add",
         {
           key: mykey,
           content: textarea.value
@@ -176,7 +182,7 @@ jQuery(document).ready(function ($) {
         });
 
 
-      $.post("/dev/chat",
+      $.post("/" + stage + "/chat",
         {
           key: mykey,
           content: textarea.value
@@ -198,7 +204,7 @@ jQuery(document).ready(function ($) {
 
     $('#gen_btn').click(function () {
 
-      $.get("/dev/generate").done(
+      $.get("/" + stage + "/generate").done(
 
         function (data, status) {
           //$('#mykey2').value = data;
@@ -207,7 +213,7 @@ jQuery(document).ready(function ($) {
           $("body").html(data);
 
           var mykey = document.getElementById('mykey').value;
-          link = '/dev/pages/' + mykey
+          link = '/' + stage + '/pages/' + mykey
           window.location.href = link;
 
         });

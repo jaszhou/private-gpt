@@ -1,0 +1,1 @@
+arn:aws:lambda:ap-southeast-2:647207328002:layer:snapCopyDeps:16

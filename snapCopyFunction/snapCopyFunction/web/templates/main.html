@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-X9MLH9GR3J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-X9MLH9GR3J');
+  </script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SnapCopy - Instant information sharing across devices">
+  <title>SnapCopy | Secure Cross-Device Sharing</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    .hero-section {
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+    }
+    .copy-card {
+      transition: transform 0.3s;
+      margin-bottom: 1.5rem;
+    }
+    .copy-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .qr-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    body {
+      text-align: center;
+    }
+    .chat-button {
+      display: none;
+    }
+    footer {
+      width: 100%;
+    }
+    footer .container-fluid {
+      max-width: 100%;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .message-placeholder {
+      font-family: monospace;
+      letter-spacing: 2px;
+    }
+    .reveal-btn {
+      margin-left: 8px;
+    }
+    /* DynamoDB Viewer Styles */
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-item {
+      text-align: center;
+      flex: 1;
+      min-width: 120px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      background-color: #f8f9fa;
+      border-radius: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .empty-state h4 {
+      margin-bottom: 0.5rem;
+      color: #495057;
+    }
+    .empty-state p {
+      color: #6c757d;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .id-cell {
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: #6c757d;
+    }
+    .content-cell {
+      max-width: 300px;
+      word-wrap: break-word;
+    }
+    .timestamp-cell {
+      white-space: nowrap;
+    }
+    .download-btn {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
+      margin: 2px;
+    }
+    .download-btn i {
+      margin-right: 4px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <i class="bi bi-clipboard-data me-2"></i>
+        SnapCopy
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="main.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://zappa-m3secjk20.s3.amazonaws.com/about.html">About</a>
+          </li>
+        </ul>
+        <form class="d-flex">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-key"></i></span>
+            <input class="form-control" type="text" placeholder="{{uid}}" readonly>
+            <button class="btn btn-outline-light" type="button" id="copyKeyBtn">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </form>
+        <div class="navbar-nav ms-3">
+          {% if user_email %}
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text-light" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle me-1"></i>{{ user_name }}
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="/{{ stage }}/logout"><i class="bi bi-box-arrow-right me-1"></i>Logout</a></li>
+            </ul>
+          </div>
+          {% else %}
+          <a class="btn btn-outline-light me-2" href="/{{ stage }}/login">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+          </a>
+          <a class="btn btn-primary" href="/{{ stage }}/register">
+            <i class="bi bi-person-plus me-1"></i>Register
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero-section text-center">
+    <div class="container">
+      <h1 class="display-5 fw-bold mb-3">Share Instantly</h1>
+      <p class="lead">Copy text between devices with just a QR code scan</p>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <!-- DynamoDB Messages Card -->
+        <div class="card copy-card mb-4" id="dynamodbMessagesCard">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-chat-square-text me-2"></i>Messages</h5>
+          </div>
+          <div class="card-body">
+            <!-- Empty State -->
+            <div class="empty-state" id="dynamodbEmptyState">
+              <i class="bi bi-database-slash display-1 text-muted mb-3"></i>
+              <h4>No messages found</h4>
+              <p class="text-muted">There are no messages in the DynamoDB table or there was an error loading data.</p>
+              <button class="btn btn-primary mt-3" id="refreshDynamoDB">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+              </button>
+            </div>
+        
+            <!-- Table -->
+            <div class="table-responsive" id="dynamodbTableContainer" style="display: none;">
+              <table class="table table-hover table-striped">
+                <thead class="table-light">
+                  <tr>
+                    <th>Message</th>
+                    <th>Time</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="dynamodbTableBody">
+                  <!-- DynamoDB rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+        
+            <div class="text-center mt-4">
+              <button class="btn btn-outline-primary" id="refreshDynamoDBBottom">
+                <i class="bi bi-arrow-clockwise me-2"></i>Refresh Messages
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card copy-card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>New Message</h5>
+          </div>
+          <div class="card-body">
+            <form>
+              <input id="mykey" type="hidden" value="{{uid}}">
+              <div class="mb-3">
+                <label for="w3review" class="form-label">Your Message:</label>
+                <textarea id="w3review" class="form-control" rows="3" name="w3review"></textarea>
+                <div class="mt-3 text-end">
+                  <button class="btn btn-outline-secondary me-2" id="attach_file_btn" type="button">
+                    <i class="bi bi-paperclip me-1"></i>Attach File
+                  </button>
+                  <button class="btn btn-primary" id="submit_btn" type="button">
+                    <i class="bi bi-send me-1"></i>Submit
+                  </button>
+                </div>
+              </div>
+              <div id="fileUploadSection" style="display: none;">
+                <div class="mb-3">
+                  <label for="fileUpload" class="form-label">Upload File (optional):</label>
+                  <input type="file" class="form-control" id="fileUpload" name="file">
+                </div>
+                <div class="mb-3">
+                  <label for="fileDescription" class="form-label">File Description:</label>
+                  <input type="text" class="form-control" id="fileDescription" placeholder="Describe the file...">
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                  <button class="btn btn-secondary" id="upload_btn" type="button">
+                    <i class="bi bi-upload me-1"></i>Upload File
+                  </button>
+                </div>
+              </div>
+              <!-- Removed chat button -->
+            </form>
+          </div>
+        </div>
+
+        <div class="card copy-card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-qr-code-scan me-2"></i>QR Code</h5>
+          </div>
+          <div class="card-body text-center">
+            <div class="qr-container d-inline-block">
+              <img id="qrcode" class="img-fluid" src="" alt="QR Code" style="width:300px;height:300px;">
+            </div>
+            <p class="mt-3 text-muted">Scan this QR code to access your clipboard on another device</p>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-dark py-4 mt-5">
+    <div class="container-fluid px-0">
+      <div class="row justify-content-center">
+        <div class="col-auto text-center">
+          <p class="mb-0">Copyright 2024 SnapCopy. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+
+  <script>
+      
+jQuery( document ).ready( function( $ ) {
+
+  // Function to toggle message visibility
+  $(document).on('click', '.reveal-btn', function() {
+    var $btn = $(this);
+    var $row = $btn.closest('tr');
+    var $text = $row.find('.message-text');
+    var $placeholder = $row.find('.message-placeholder');
+    
+    // Only toggle if the message is actually hidden (has message-text element)
+    if ($text.length > 0) {
+      if ($text.is(':visible')) {
+        $text.hide();
+        $placeholder.show();
+        $btn.html('<i class="bi bi-eye"></i>');
+        $btn.attr('title', 'Reveal');
+      } else {
+        $text.show();
+        $placeholder.hide();
+        $btn.html('<i class="bi bi-eye-slash"></i>');
+        $btn.attr('title', 'Hide');
+      }
+    }
+  });
+
+  function formatTimestamp(isoString) {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '';
+      const pad = (n) => n.toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+      const seconds = pad(date.getSeconds());
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch (e) {
+      console.error('Error formatting timestamp:', e);
+      return '';
+    }
+  }
+
+  // load data initially for key 
+  var url = window.location.pathname;
+  var id = url.substring(url.lastIndexOf('/') + 1);
+
+  console.log("id: " + id);
+
+  if (id !== null && id !== undefined && id.length > 10) {
+  
+  var QRCodeByteArrayAsBase64 = '{{qrcode}}' ;
+  // set qr code image
+  $('#qrcode').attr('src', `data:image/png;base64,${QRCodeByteArrayAsBase64}`);
+
+  // Regular message loading removed (topMessagesCard no longer exists)
+  
+  } else {
+
+      console.log('create a new key');  
+    // create new key
+
+    function makeid(length) {
+      let result = '';
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const charactersLength = characters.length;
+      let counter = 0;
+      while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
+      }
+      return result;
+    }
+  
+  key = makeid(20)
+  console.log(key);
+  link = '/{{ stage }}/pages/' + key
+  window.location.href= link;
+
+  }
+
+    
+    $("#copyKeyBtn").click(function() {
+    navigator.clipboard.writeText($("input[placeholder='{{uid}}']").val())
+      .then(() => {
+        $(".copied-toast").text("Key copied!").show().fadeOut(1200);
+      });
+  });
+
+  $(".copied-toast").hide();
+  // Global copy handler for message values
+  $(document).on('click', '[data-type="copy"]', function (e) {
+    var $row = $(this).closest('tr');
+    // Always copy the original plain text from data-value attribute (without hyperlinks)
+    var t = $row.find('[data-type="email"]').attr('data-value') || $row.find('[data-type="email"]').text();
+    navigator.clipboard.writeText(t);
+    $(".copied-toast").text("Copied!").show().fadeOut(1200);
+  });
+
+  // Global delete handler for message values
+  $(document).on('click', '[data-type="delete"]', function (e) {
+    var $row = $(this).closest('tr');
+    var messageId = $row.attr('data-message-id') || '';
+    var messageText = $row.find('[data-type="email"]').attr('data-value') || '';
+    console.log('Delete clicked for message ID:', messageId, 'text:', messageText);
+    if (!messageId) {
+      alert('Cannot delete: no message ID');
+      return;
+    }
+    if (!confirm('Are you sure you want to delete this message?')) {
+      return;
+    }
+    // Call delete endpoint
+    $.ajax({
+      url: '/{{ stage }}/db_delete/' + messageId,
+      type: 'DELETE',
+      success: function(data) {
+        console.log('Delete success:', data);
+        $row.fadeOut(400, function() { 
+          $(this).remove();
+          // Check if any message rows remain (rows with data-message-id attribute)
+          var remainingRows = $('#dynamodbTableBody tr[data-message-id]').length;
+          if (remainingRows === 0) {
+            $('#dynamodbMessagesCard').hide();
+          }
+        });
+      },
+      error: function(xhr, status, error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete message: ' + error);
+      }
+    });
+  });
+
+   $('#submit_btn').click(function () {
+
+    var textarea = document.getElementById('w3review');
+
+    v = $.trim(textarea.value);
+
+    var mykey = document.getElementById('mykey').value;
+
+    var currentdate = new Date();
+    var datetime = currentdate.getDate() + "/"
+    + (currentdate.getMonth()+1)  + "/" 
+    + currentdate.getFullYear() + " @ "  
+    + currentdate.getHours() + ":"  
+    + currentdate.getMinutes() + ":" 
+    + currentdate.getSeconds();
+
+    //var q = '<input class="form-control" type="text" value="'+ v +'" ></input>'
+
+    //$("#grp").append(q);
+
+
+    // var r removed - no longer needed because topMessagesCard is gone
+
+
+
+
+
+    $.post("/{{ stage }}/db_add",
+    {
+      key: mykey,
+      content: textarea.value
+    },
+    function(data, status){
+      console.log("Data: " + data + "\nStatus: " + status);
+      // Refresh bottom message card after adding new message
+      loadDynamoDBMessages();
+    });
+
+    textarea.value = "";
+
+  });
+
+  // Upload file button handler
+  $('#upload_btn').click(function () {
+    var fileInput = document.getElementById('fileUpload');
+    var file = fileInput.files[0];
+    var description = document.getElementById('fileDescription').value;
+    var mykey = document.getElementById('mykey').value;
+
+    if (!file) {
+      alert('Please select a file to upload.');
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('description', description);
+    formData.append('key', mykey);
+
+    $.ajax({
+      url: '/{{ stage }}/db_upload',
+      type: 'POST',
+      data: formData,
+      contentType: false,
+      processData: false,
+      success: function(data) {
+        console.log('Upload success:', data);
+        // Display download link
+        if (data.download_url) {
+          var linkHtml = '<div class="alert alert-info mt-3">File uploaded: <a href="' + data.download_url + '" target="_blank">' + file.name + '</a></div>';
+          $('#upload_btn').after(linkHtml);
+        }
+        // Clear inputs
+        fileInput.value = '';
+        document.getElementById('fileDescription').value = '';
+        // Refresh bottom message card after uploading new file
+        loadDynamoDBMessages();
+      },
+      error: function(xhr, status, error) {
+        console.error('Upload error:', error);
+        alert('Upload failed: ' + error);
+      }
+    });
+  });
+
+  // Attach file button handler - toggle file upload section
+  $('#attach_file_btn').click(function () {
+    var $section = $('#fileUploadSection');
+    if ($section.is(':visible')) {
+      $section.hide();
+      $(this).removeClass('btn-secondary').addClass('btn-outline-secondary');
+    } else {
+      $section.show();
+      $(this).removeClass('btn-outline-secondary').addClass('btn-secondary');
+    }
+  });
+
+  // chat button removed from UI - handler disabled
+
+  $('#gen_btn').click(function () {
+
+    $.get("/{{ stage }}/generate").done(
+
+    function(data, status){
+      //$('#mykey2').value = data;
+      //$('#mykey').value = data;
+      console.log("\nStatus: " + status);
+      $("body").html(data);
+
+      var mykey = document.getElementById('mykey').value;
+      link = '/{{ stage }}/pages/' + mykey
+      window.location.href= link;
+
+    });
+  });
+
+  // DynamoDB Messages
+  function loadDynamoDBMessages() {
+    var keyId = '{{uid}}';
+    // If no valid key ID, use 'all' to fetch all messages
+    if (!keyId || keyId.length < 10) {
+      keyId = 'all';
+      console.log('Using keyId: all to fetch all DynamoDB messages');
+    }
+    $.get('/{{ stage }}/db_messages/' + keyId)
+      .done(function(data) {
+        console.log('DynamoDB data loaded:', data);
+        $('#totalCount').text(data.total_count);
+        $('#tableName').text(data.table_name);
+        $('#region').text(data.region);
+        
+        var items = data.items;
+        var tableBody = $('#dynamodbTableBody');
+        tableBody.empty();
+        
+        if (items && items.length > 0) {
+          $('#dynamodbMessagesCard').show();
+          $('#dynamodbEmptyState').hide();
+          $('#dynamodbTableContainer').show();
+          
+          items.forEach(function(item) {
+            var messageText = item.content || '';
+            var messageHtml = '';
+            
+            // Check if this is a download URL (presigned S3 URL)
+            // Look for S3 URLs with presigned signature parameters
+            var isPresignedS3Url = messageText.includes('amazonaws.com') && 
+                                   (messageText.includes('X-Amz-Signature') || 
+                                    messageText.includes('X-Amz-Algorithm') ||
+                                    messageText.includes('X-Amz-Credential') ||
+                                    messageText.includes('X-Amz-Date') ||
+                                    messageText.includes('X-Amz-Expires') ||
+                                    messageText.includes('X-Amz-SignedHeaders'));
+            
+            if (isPresignedS3Url) {
+              // Extract filename from URL - S3 key format: uploads/key_id/filename
+              var urlParts = messageText.split('/');
+              // The filename should be the last part before the query string
+              var lastPart = urlParts[urlParts.length - 1];
+              var filename = lastPart.split('?')[0];
+              // Decode URL-encoded filename
+              filename = decodeURIComponent(filename);
+              
+              // Check if we got a meaningful filename (not empty, not just numbers, not the key_id)
+              var isMeaningfulFilename = filename && 
+                                        filename.length >= 3 && 
+                                        !/^\d+$/.test(filename) && // not just digits
+                                        filename !== keyId && // not the key ID
+                                        !filename.includes('uploads'); // not containing uploads
+              
+              if (!isMeaningfulFilename) {
+                // Try to get the second-to-last part if the last part isn't meaningful
+                if (urlParts.length >= 3) {
+                  var potentialFilename = urlParts[urlParts.length - 2];
+                  potentialFilename = decodeURIComponent(potentialFilename);
+                  if (potentialFilename && potentialFilename.length >= 3 && potentialFilename !== keyId) {
+                    filename = potentialFilename;
+                  } else {
+                    filename = 'Download File';
+                  }
+                } else {
+                  filename = 'Download File';
+                }
+              }
+              
+              // Get file description and filename
+            var description = item.description || '';
+            var storedFilename = item.filename || '';
+            
+            // Create download button with filename as button text (prefer description, then filename, then 'Download')
+            var buttonText = description || storedFilename || 'Download';
+            var buttonHtml = '<a href="' + messageText + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary download-btn" title="Download: ' + storedFilename + '"><i class="bi bi-download"></i> ' + buttonText + '</a>';
+            
+            messageHtml = buttonHtml;
+            } else {
+              // Check if URL points to a downloadable file
+              var downloadableExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.rar', '.7z', '.tar', '.gz', '.jpg', '.jpeg', '.png', '.gif', '.mp3', '.mp4', '.avi', '.mov', '.txt', '.csv', '.json', '.xml'];
+              var isDownloadable = false;
+              var filename = '';
+              
+              // Extract filename from URL
+              var urlParts = messageText.split('/');
+              var lastPart = urlParts[urlParts.length - 1];
+              filename = decodeURIComponent(lastPart.split('?')[0]);
+              
+              // Check if URL ends with a downloadable extension
+              for (var i = 0; i < downloadableExtensions.length; i++) {
+                if (filename.toLowerCase().endsWith(downloadableExtensions[i])) {
+                  isDownloadable = true;
+                  break;
+                }
+              }
+              
+              if (isDownloadable && filename.length > 0) {
+                // Get file description and filename
+                var description = item.description || '';
+                var storedFilename = item.filename || '';
+                // Create download button for downloadable files with filename as button text (prefer description, then filename, then 'Download')
+                var buttonText = description || storedFilename || 'Download';
+                messageHtml = '<a href="' + messageText + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary download-btn" title="Download: ' + storedFilename + '"><i class="bi bi-download"></i> ' + buttonText + '</a>';
+              } else {
+                // Regular URL detection for other URLs
+                messageHtml = messageText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+              }
+            }
+            
+            var timestamp = item.timestamp || '';
+            
+            // Determine if this message should be hidden (only hide regular text, not downloadable links)
+            var shouldHide = !isPresignedS3Url && !isDownloadable && !messageText.includes('http');
+            
+            var row = '<tr data-message-id="' + (item.id || '') + '">' +
+              '<td data-type="email" data-value="' + messageText + '">';
+            
+            if (shouldHide) {
+              // Hide regular text messages
+              row += '<span class="message-text" style="display:none;">' + messageHtml + '</span><span class="message-placeholder">...</span> <button class="btn btn-sm btn-outline-secondary reveal-btn" title="Reveal"><i class="bi bi-eye"></i></button>';
+            } else {
+              // Show downloadable links and URLs immediately
+              row += messageHtml;
+            }
+            
+            // Determine if copy button should be enabled (disable for downloadable files)
+            var copyEnabled = !isPresignedS3Url && !isDownloadable;
+            var copyButtonClass = copyEnabled ? 'btn-outline-primary' : 'btn-outline-secondary disabled';
+            var disabledAttr = copyEnabled ? '' : 'disabled aria-disabled="true"';
+            var copyButtonHtml = '<button data-type="copy" class="btn btn-sm ' + copyButtonClass + '" ' + disabledAttr + '><i class="bi bi-clipboard-check"></i> Copy</button> ';
+            row += '</td>' +
+              '<td>' + formatTimestamp(timestamp) + '</td>' +
+              '<td>' + copyButtonHtml + '<button data-type="delete" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</button></td>' +
+              '</tr>';
+            tableBody.append(row);
+          });
+        } else {
+          $('#dynamodbMessagesCard').hide();
+          $('#dynamodbEmptyState').show();
+          $('#dynamodbTableContainer').hide();
+        }
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Failed to load DynamoDB messages:', textStatus, errorThrown);
+        $('#dynamodbMessagesCard').hide();
+        $('#dynamodbEmptyState').show();
+        $('#dynamodbTableContainer').hide();
+        $('#dynamodbEmptyState h4').text('Error loading data');
+        $('#dynamodbEmptyState p').html('Could not load messages from DynamoDB. Please check the server logs.<br><small>' + errorThrown + '</small>');
+      });
+  }
+
+  // Bind refresh buttons
+  $('#refreshDynamoDB, #refreshDynamoDBBottom').click(function() {
+    loadDynamoDBMessages();
+  });
+
+  // Load DynamoDB messages on page load
+  loadDynamoDBMessages();
+
+});
+
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@ import json
 from botocore.exceptions import ClientError
 
 # Create an Amazon Bedrock Runtime client.
-brt = boto3.client("bedrock-runtime")
+brt = boto3.client("bedrock-runtime", region_name="ap-southeast-2")
 
 # Set the model ID, e.g., Amazon Titan Text G1 - Express.
 model_id = "amazon.titan-text-express-v1"

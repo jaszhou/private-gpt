@@ -2,6 +2,7 @@
 # create a python function to generate qr code
 # https://medium.com/@rahulmallah785671/create-qr-code-by-using-python-2370d7bd9b8d
 # 
+import os
 from typing import Optional
 import io
 from io import BytesIO
@@ -10,6 +11,11 @@ import qrcode
 from base64 import encodebytes
 from PIL import Image, ImageDraw
 import random, string
+
+# Configuration from environment variables
+AWS_REGION = os.environ.get('AWS_REGION', 'ap-southeast-2')
+API_GATEWAY_ID = os.environ.get('API_GATEWAY_ID', 'f8do9lswp5')
+API_GATEWAY_STAGE = os.environ.get('API_GATEWAY_STAGE', 'dev')
 
 # write python function to return an png image as http response
 
@@ -45,13 +51,13 @@ def generate_qr_code(uid: Optional[str] = None):
     qr = qrcode.QRCode(version=3, box_size=20, border=10, error_correction=qrcode.constants.ERROR_CORRECT_H)
 
     if(uid):
-        data = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{uid}"
+        data = f"https://{API_GATEWAY_ID}.execute-api.{AWS_REGION}.amazonaws.com/{API_GATEWAY_STAGE}/pages/{uid}"
     else:
         uid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(20))
 
         # Define the data to be encoded in the QR code
         
-        data = f"https://f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com/dev/pages/{uid}"
+        data = f"https://{API_GATEWAY_ID}.execute-api.{AWS_REGION}.amazonaws.com/{API_GATEWAY_STAGE}/pages/{uid}"
         
 
     # Add the data to the QR code object

@@ -1,0 +1,3 @@
+botocore
+Pillow
+boto3

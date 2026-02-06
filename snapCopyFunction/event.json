@@ -1,0 +1,118 @@
+{
+    "resource": "/pages",
+    "path": "/pages",
+    "httpMethod": "GET",
+    "headers": {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,* /*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US,en;q=0.9,zh;q=0.8",
+        "cookie": "_ga=GA1.1.1684643536.1769579076; _ga_X9MLH9GR3J=GS2.1.s1769667332$o4$g1$t1769670269$j60$l0$h0",
+        "Host": "f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com",
+        "priority": "u=1, i",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\"",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": null,
+        "sec-purpose": "prefetch;prerender",
+        "upgrade-insecure-requests": "1",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+        "X-Amzn-Trace-Id": "Root=1-697c01cd-2d9ec2ca2c8d825c6ad764e0",
+        "X-Forwarded-For": "1.145.83.184",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "multiValueHeaders": {
+        "accept": [
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+        ],
+        "accept-encoding": [
+            "gzip, deflate, br, zstd"
+        ],
+        "accept-language": [
+            "en-US,en;q=0.9,zh;q=0.8"
+        ],
+        "cookie": [
+            "_ga=GA1.1.1684643536.1769579076; _ga_X9MLH9GR3J=GS2.1.s1769667332$o4$g1$t1769670269$j60$l0$h0"
+        ],
+        "Host": [
+            "f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com"
+        ],
+        "priority": [
+            "u=1, i"
+        ],
+        "sec-ch-ua-mobile": [
+            "?0"
+        ],
+        "sec-ch-ua-platform": [
+            "\"Windows\""
+        ],
+        "sec-fetch-dest": [
+            "document"
+        ],
+        "sec-fetch-mode": [
+            "navigate"
+        ],
+        "sec-fetch-site": [
+            null
+        ],
+        "sec-purpose": [
+            "prefetch;prerender"
+        ],
+        "upgrade-insecure-requests": [
+            "1"
+        ],
+        "User-Agent": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+        ],
+        "X-Amzn-Trace-Id": [
+            "Root=1-697c01cd-2d9ec2ca2c8d825c6ad764e0"
+        ],
+        "X-Forwarded-For": [
+            "1.145.83.184"
+        ],
+        "X-Forwarded-Port": [
+            "443"
+        ],
+        "X-Forwarded-Proto": [
+            "https"
+        ]
+    },
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "requestContext": {
+        "resourceId": "i1ry6f",
+        "resourcePath": "/pages",
+        "httpMethod": "GET",
+        "extendedRequestId": "X-U4JEUvywMEROg=",
+        "requestTime": "30/Jan/2026: 00: 56: 45 +0000",
+        "path": "/dev/pages",
+        "accountId": "647207328002",
+        "protocol": "HTTP/1.1",
+        "stage": "dev",
+        "domainPrefix": "f8do9lswp5",
+        "requestTimeEpoch": 1769734605304,
+        "requestId": "490d6620-9336-43a3-b574-de1bf523c338",
+        "identity": {
+            "cognitoIdentityPoolId": null,
+            "accountId": null,
+            "cognitoIdentityId": null,
+            "caller": null,
+            "sourceIp": "1.145.83.184",
+            "principalOrgId": null,
+            "accessKey": null,
+            "cognitoAuthenticationType": null,
+            "cognitoAuthenticationProvider": null,
+            "userArn": null,
+            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+            "user": null
+        },
+        "domainName": "f8do9lswp5.execute-api.ap-southeast-2.amazonaws.com",
+        "deploymentId": "a3lbuw",
+        "apiId": "f8do9lswp5"
+    },
+    "body": null,
+    "isBase64Encoded": false
+}

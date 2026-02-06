@@ -76,7 +76,7 @@ $env:FLASK_APP = "app.py";
 dir env:
 
 
-
+export FLASK_APP="lambda_function.py"
 flask run --debugger
 
 
