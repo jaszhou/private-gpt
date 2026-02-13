@@ -202,6 +202,91 @@ def scrape_wenxuecity():
         print(f"Unexpected error: {e}")
         return "获取新闻时发生未知错误"
 
+def scrape_wenxuecity_detailed():
+    """Scrape news and return detailed information for each article"""
+    url = "https://www.wenxuecity.com/news/"
+
+    # Add proper headers to avoid blocking
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    try:
+        # Make request with timeout and SSL verification disabled for now
+        # Note: In production, consider using proper certificates or verify=True
+        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r.raise_for_status()
+
+        soup = BeautifulSoup(r.content, 'html.parser')
+        news_articles = []
+
+        # Extract article links with their titles
+        article_links = []
+
+        # Try to find news articles with links
+        # Look for links that appear to be news articles
+        all_links = soup.find_all('a', href=True)
+
+        for link in all_links:
+            href = link.get('href', '')
+            title = link.get_text(strip=True)
+
+            # Filter for likely news articles
+            if (title and len(title) > 15 and len(title) < 200 and
+                href and not any(skip in href.lower() for skip in ['javascript:', '#', 'mailto:', 'login', 'register']) and
+                not any(skip in title.lower() for skip in ['首页', '登录', '注册', '更多', 'home', 'login', 'register']) and
+                any(indicator in href.lower() for indicator in ['news', 'article', '/n/', '/a/'])):
+
+                article_links.append({
+                    'title': title,
+                    'url': href
+                })
+
+                if len(article_links) >= 10:  # Limit to first 10 articles
+                    break
+
+        # If no specific news links found, try general approach
+        if not article_links:
+            for link in all_links[:20]:  # Check first 20 links
+                href = link.get('href', '')
+                title = link.get_text(strip=True)
+
+                if (title and len(title) > 10 and len(title) < 200 and
+                    href and href.startswith('/') and
+                    not any(skip in title.lower() for skip in ['首页', '登录', '注册', '更多', 'home', 'login'])):
+
+                    article_links.append({
+                        'title': title,
+                        'url': href
+                    })
+
+                    if len(article_links) >= 10:
+                        break
+
+        print(f"Found {len(article_links)} article links to scrape")
+
+        # Scrape content for each article
+        for i, article in enumerate(article_links, 1):
+            print(f"Scraping article {i}/10: {article['title'][:50]}...")
+
+            content = scrape_article_content(article['url'], headers)
+
+            # Add the article with both title and content
+            news_articles.append({
+                'title': article['title'],
+                'content': content,
+                'url': article['url']
+            })
+
+        return news_articles
+
+    except requests.exceptions.RequestException as e:
+        print(f"Network error: {e}")
+        return "网络连接错误，无法获取新闻"
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return "获取新闻时发生未知错误"
+
 # -------------------------
 # 4. Convert text to speech using AWS Polly
 # -------------------------
@@ -296,6 +381,40 @@ def send_to_telegram_voice(audio_data):
         print(f"Error sending to Telegram: {e}")
         return False
 
+def send_to_telegram_voice_with_caption(audio_data, caption):
+    """Send audio data as voice message to Telegram with custom caption"""
+    try:
+        if not TELEGRAM_TOKEN or not CHAT_ID:
+            print("Telegram credentials not configured")
+            return False
+
+        # Send voice message using Telegram Bot API
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
+
+        files = {
+            'voice': ('news.mp3', BytesIO(audio_data), 'audio/mpeg')
+        }
+
+        data = {
+            'chat_id': CHAT_ID,
+            'caption': f"📰 {caption}"  # Use the article title as caption
+        }
+
+        response = requests.post(url, files=files, data=data, timeout=30)
+        response.raise_for_status()
+
+        result = response.json()
+        if result.get('ok'):
+            print(f"Voice message sent successfully to Telegram with caption: {caption}")
+            return True
+        else:
+            print(f"Telegram API error: {result}")
+            return False
+
+    except Exception as e:
+        print(f"Error sending to Telegram: {e}")
+        return False
+
 def sanitize_for_ssml(text):
     """
     Make text 100% safe for Amazon Polly SSML
@@ -334,9 +453,9 @@ def lambda_handler(event, context):
         print("Rate limit check passed - processing news...")
 
         # Process news synchronously
-        news_text = scrape_wenxuecity()
-        if not news_text or news_text.startswith("网络连接错误") or news_text.startswith("获取新闻时发生未知错误"):
-            print(f"Failed to scrape news: {news_text}")
+        news_articles = scrape_wenxuecity_detailed()
+        if not news_articles or isinstance(news_articles, str):
+            print(f"Failed to scrape news: {news_articles}")
             return {
                 "statusCode": 500,
                 "headers": {
@@ -345,22 +464,40 @@ def lambda_handler(event, context):
                 },
                 "body": json.dumps({
                     "message": "Failed to scrape news",
-                    "error": news_text
+                    "error": news_articles if isinstance(news_articles, str) else "Unknown error"
                 })
             }
 
-        print(f"Successfully scraped news: {len(news_text)} characters")
+        print(f"Successfully scraped {len(news_articles)} news articles")
 
-        # Convert to speech
-        audio_data = text_to_speech(sanitize_for_ssml(news_text))
-        print("Successfully converted text to speech")
+        # Process each article separately
+        total_articles = len(news_articles)
+        successful_articles = 0
+        
+        for i, article in enumerate(news_articles):
+            print(f"Processing article {i+1}/{total_articles}: {article['title']}")
+            print(f"Content: {article['content']}")
+            
+            # Convert article content to speech
+            try:
+                audio_data = text_to_speech(sanitize_for_ssml(article['content']))
+                print(f"Successfully converted article {i+1} to speech")
+                
+                # Send to Telegram if configured
+                telegram_sent = False
+                if TELEGRAM_TOKEN and CHAT_ID:
+                    telegram_sent = send_to_telegram_voice_with_caption(audio_data, article['title'])
+                
+                if telegram_sent:
+                    successful_articles += 1
+                    
+                print(f"Article {i+1} processed. Telegram sent: {telegram_sent}")
+                
+            except Exception as e:
+                print(f"Error processing article {i+1}: {e}")
+                continue
 
-        # Send to Telegram if configured
-        telegram_sent = False
-        if TELEGRAM_TOKEN and CHAT_ID:
-            telegram_sent = send_to_telegram_voice(audio_data)
-
-        print(f"Processing completed. Telegram sent: {telegram_sent}")
+        print(f"Processing completed. Successfully sent {successful_articles}/{total_articles} articles to Telegram.")
 
         return {
             "statusCode": 200,
@@ -370,9 +507,8 @@ def lambda_handler(event, context):
             },
             "body": json.dumps({
                 "message": "News processing completed successfully",
-                "news_length": len(news_text),
-                "telegram_sent": telegram_sent,
-                "audio_size": len(audio_data),
+                "total_articles": total_articles,
+                "successful_articles": successful_articles,
                 "timestamp": time.time()
             })
         }
