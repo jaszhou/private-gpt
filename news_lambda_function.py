@@ -7,6 +7,7 @@ import boto3
 import os
 from io import BytesIO
 import time
+from urllib.parse import urljoin
 
 # -------------------------
 # 1. Configuration
@@ -20,6 +21,7 @@ CHAT_ID = os.environ.get('CHAT_ID')
 RATE_LIMIT_FILE = '/tmp/last_invoke_time.txt' if os.name != 'nt' else 'last_invoke_time.txt'
 RATE_LIMIT_SECONDS = 60  # 1 minute
 
+oursteps_url = "https://www.oursteps.com.au/bbs/forum.php?mod=forumdisplay&fid=43&page=1"
 # -------------------------
 # 2. Rate Limiting Functions
 # -------------------------
@@ -64,14 +66,11 @@ def get_last_invoke_info():
 # -------------------------
 # 3. Scrape latest news
 # -------------------------
-def scrape_article_content(article_url, headers):
+def scrape_article_content(article_url, headers, base_url='https://www.wenxuecity.com'):
     """Scrape the content of a single article"""
     try:
-        # Ensure URL is absolute
-        if article_url.startswith('/'):
-            article_url = 'https://www.wenxuecity.com' + article_url
-        elif not article_url.startswith('http'):
-            article_url = 'https://www.wenxuecity.com/' + article_url
+        # Ensure URL is absolute for the given source site
+        article_url = urljoin(base_url, article_url)
 
         response = requests.get(article_url, headers=headers, timeout=15, verify=False)
         response.raise_for_status()
@@ -82,7 +81,9 @@ def scrape_article_content(article_url, headers):
         content_selectors = [
             'div.content', 'div.article-content', 'div.news-content',
             'div[class*="content"]', 'div[class*="article"]',
-            'article', 'main', 'div.text'
+            'article', 'main', 'div.text',
+            # Forum-style selectors (e.g., OurSteps/Discuz)
+            'td.t_f', 'div.t_fsz', 'div.pcb', 'div.postmessage'
         ]
 
         content = ""
@@ -183,7 +184,7 @@ def scrape_wenxuecity():
         for i, article in enumerate(article_links, 1):
             print(f"Scraping article {i}/10: {article['title'][:50]}...")
 
-            content = scrape_article_content(article['url'], headers)
+            content = scrape_article_content(article['url'], headers, base_url=url)
 
             # Create a summary format
             article_summary = f"""
@@ -194,6 +195,110 @@ def scrape_wenxuecity():
             news_articles.append(article_summary.strip())
 
         return "\n\n".join(news_articles) if news_articles else "未能获取到新闻内容"
+
+    except requests.exceptions.RequestException as e:
+        print(f"Network error: {e}")
+        return "网络连接错误，无法获取新闻"
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return "获取新闻时发生未知错误"
+
+def _has_significant_words(content, min_estimated_words=80):
+    """Validate scraped text has enough meaningful content."""
+    if not content:
+        return False
+
+    cleaned = re.sub(r'\s+', ' ', content).strip()
+    if len(cleaned) < 180:
+        return False
+
+    english_words = len(re.findall(r'[A-Za-z0-9]+', cleaned))
+    chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', cleaned))
+    estimated_words = english_words + (chinese_chars // 2)
+    return estimated_words >= min_estimated_words
+
+def scrape_oursteps():
+    url = oursteps_url
+
+    # Add proper headers to avoid blocking
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    try:
+        # Make request with timeout and SSL verification disabled for now
+        # Note: In production, consider using proper certificates or verify=True
+        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r.raise_for_status()
+
+        soup = BeautifulSoup(r.content, 'html.parser')
+        news_articles = []
+
+        # Extract article links with their titles
+        article_links = []
+
+        # Try to find thread links
+        all_links = soup.find_all('a', href=True)
+
+        for link in all_links:
+            href = link.get('href', '')
+            title = link.get_text(strip=True)
+
+            # Filter for likely thread/article links
+            if (title and len(title) > 15 and len(title) < 200 and
+                href and not any(skip in href.lower() for skip in ['javascript:', '#', 'mailto:', 'login', 'register']) and
+                not any(skip in title.lower() for skip in ['首页', '登录', '注册', '更多', 'home', 'login', 'register']) and
+                any(indicator in href.lower() for indicator in ['viewthread', 'tid=', 'thread'])):
+
+                article_links.append({
+                    'title': title,
+                    'url': urljoin(url, href)
+                })
+
+                if len(article_links) >= 10:  # Limit to first 10 articles
+                    break
+
+        # If no specific thread links found, try general approach
+        if not article_links:
+            for link in all_links[:30]:  # Check first 30 links
+                href = link.get('href', '')
+                title = link.get_text(strip=True)
+
+                if (title and len(title) > 10 and len(title) < 200 and
+                    href and
+                    not any(skip in title.lower() for skip in ['首页', '登录', '注册', '更多', 'home', 'login'])):
+
+                    article_links.append({
+                        'title': title,
+                        'url': urljoin(url, href)
+                    })
+
+                    if len(article_links) >= 10:
+                        break
+
+        print(f"Found {len(article_links)} oursteps links to scrape")
+
+        # Scrape content for each article
+        for i, article in enumerate(article_links, 1):
+            print(f"Scraping oursteps article {i}/10: {article['title'][:50]}...")
+
+            content = scrape_article_content(article['url'], headers, base_url=url)
+
+            # Validate content has meaningful length/word amount
+            if not _has_significant_words(content):
+                print(f"Skipping short or low-content article: {article['title'][:50]}...")
+                continue
+
+            # Create a summary format
+            article_summary = f"""
+新闻 {i}: {article['title']}
+内容摘要: {content}
+---
+"""
+            # print(f"Article {i} summary:\n{article_summary}")
+            news_articles.append(article_summary.strip())
+
+        return "\n\n".join(news_articles) if news_articles else "未能获取到足够内容的新闻"
 
     except requests.exceptions.RequestException as e:
         print(f"Network error: {e}")
@@ -543,3 +648,4 @@ if __name__ == "__main__":
     print("Lambda result:", result)
 
     # scrape_wenxuecity()
+    scrape_oursteps()

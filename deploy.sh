@@ -102,7 +102,7 @@ else
     echo "Creating new Lambda function..."
     aws lambda create-function \
         --function-name "$FUNCTION_NAME" \
-        --runtime python3.9 \
+        --runtime python3.12 \
         --role "$ROLE_ARN" \
         --handler lambda_function.lambda_handler \
         --zip-file fileb://news-lambda-function.zip \
