@@ -1,1 +1,1 @@
-how many pending PRs in mergebot
+which PR is running in mergebot, give details 
