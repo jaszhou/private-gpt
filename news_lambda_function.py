@@ -21,6 +21,13 @@ CHAT_ID = os.environ.get('CHAT_ID')
 RATE_LIMIT_FILE = '/tmp/last_invoke_time.txt' if os.name != 'nt' else 'last_invoke_time.txt'
 RATE_LIMIT_SECONDS = 60  # 1 minute
 
+# OurSteps scraping is disabled by default.
+# The fid=43 (新闻汇总) forum is login-gated for guests: the site answers HTTP 200
+# with a Discuz "提示信息" permission page instead of the article, so the scraper
+# only ever returned navigation boilerplate. Set ENABLE_OURSTEPS_SCRAPE=true to
+# opt back in (requires a valid session cookie to be useful).
+ENABLE_OURSTEPS_SCRAPE = os.environ.get('ENABLE_OURSTEPS_SCRAPE', 'false').lower() in ('1', 'true', 'yes')
+
 oursteps_url = "https://www.oursteps.com.au/bbs/forum.php?mod=forumdisplay&fid=43&page=1"
 # -------------------------
 # 2. Rate Limiting Functions
@@ -218,6 +225,10 @@ def _has_significant_words(content, min_estimated_words=80):
     return estimated_words >= min_estimated_words
 
 def scrape_oursteps():
+    if not ENABLE_OURSTEPS_SCRAPE:
+        print("OurSteps scraping is disabled (ENABLE_OURSTEPS_SCRAPE is not true) - skipping")
+        return "OurSteps 抓取已禁用"
+
     url = oursteps_url
 
     # Add proper headers to avoid blocking
@@ -648,4 +659,4 @@ if __name__ == "__main__":
     print("Lambda result:", result)
 
     # scrape_wenxuecity()
-    scrape_oursteps()
+    # scrape_oursteps()  # disabled: fid=43 is login-gated for guests, see ENABLE_OURSTEPS_SCRAPE

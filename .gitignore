@@ -42,3 +42,7 @@ cdk.out
 *.zip
 python
 
+
+# local debug harnesses and scrape dumps
+/local_test_*.py
+/local_test_*.txt
