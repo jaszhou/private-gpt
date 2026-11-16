@@ -73,6 +73,48 @@ def get_last_invoke_info():
 # -------------------------
 # 3. Scrape latest news
 # -------------------------
+# Markers of site chrome (nav, breadcrumb, byline) that can precede the body.
+_PAGE_CHROME_MARKERS = ('advertisement', '您的位置：', '文章来源:', '被阅读次数')
+
+
+def _strip_page_chrome(text):
+    """Drop leading navigation/breadcrumb/byline chrome from extracted text.
+
+    Only the first 600 characters are inspected, so a marker appearing deeper in
+    a genuine article cannot truncate it.
+    """
+    if not text:
+        return text
+
+    head = text[:600]
+    cut = 0
+    for marker in _PAGE_CHROME_MARKERS:
+        idx = head.find(marker)
+        if idx == -1:
+            continue
+        # The byline block ends with the read-counter controls; prefer that
+        # boundary, otherwise stop just past the marker itself.
+        end = head.find('A-AA+', idx)
+        cut = max(cut, end + len('A-AA+') if end != -1 else idx + len(marker))
+
+    return text[cut:].lstrip('|-: ') if cut else text
+
+
+def _extract_article_text(container):
+    """Text of a container, preferring real paragraphs over empty wrappers.
+
+    Many templates ship placeholder ``<p>`` elements and keep the body in bare
+    text nodes, so the paragraph text is only used when it covers most of the
+    container; otherwise the container's own text wins.
+    """
+    whole = container.get_text(' ', strip=True)
+    paragraphs = [p.get_text(' ', strip=True) for p in container.find_all('p')]
+    paragraphs = [p for p in paragraphs if len(p) > 20]
+    joined = ' '.join(paragraphs)
+
+    return joined if len(joined) >= max(50, len(whole) * 0.5) else whole
+
+
 def scrape_article_content(article_url, headers, base_url='https://www.wenxuecity.com'):
     """Scrape the content of a single article"""
     try:
@@ -84,41 +126,35 @@ def scrape_article_content(article_url, headers, base_url='https://www.wenxuecit
 
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        # Try different selectors to find article content
+        # Try different selectors to find article content, most specific first:
+        # generic class* matches come last because they can wrap navigation.
         content_selectors = [
-            'div.content', 'div.article-content', 'div.news-content',
-            'div[class*="content"]', 'div[class*="article"]',
+            'article#articleContent', '#articleContent',
+            'div.article-content', 'div.news-content', 'div.content',
             'article', 'main', 'div.text',
             # Forum-style selectors (e.g., OurSteps/Discuz)
-            'td.t_f', 'div.t_fsz', 'div.pcb', 'div.postmessage'
+            'td.t_f', 'div.t_fsz', 'div.pcb', 'div.postmessage',
+            'div[class*="article"]', 'div[class*="content"]'
         ]
 
         content = ""
         for selector in content_selectors:
             content_div = soup.select_one(selector)
-            if content_div:
-                # Extract text and clean it
-                paragraphs = content_div.find_all(['p', 'div'])
-                if paragraphs:
-                    content = ' '.join([p.get_text(strip=True) for p in paragraphs[:5]])  # First 5 paragraphs
-                else:
-                    content = content_div.get_text(strip=True)[:2000]  # First 2000 chars
+            if not content_div:
+                continue
+            candidate = _extract_article_text(content_div)
+            if len(candidate) >= 50:
+                content = candidate
                 break
 
-        # Fallback: get any substantial text content
-        if not content or len(content) < 50:
-            all_text = soup.get_text(strip=True)
-            # Find content after common navigation elements
-            start_markers = ['新闻', '报道', '消息', '据']
-            for marker in start_markers:
-                if marker in all_text:
-                    start_idx = all_text.find(marker)
-                    content = all_text[start_idx:start_idx+600]
-                    break
+        # Fallback: the whole page, minus its chrome
+        if len(content) < 50:
+            all_text = soup.get_text(' ', strip=True)
+            content = _strip_page_chrome(all_text) or all_text
+            if len(content) < 50:
+                content = all_text[:2000] if all_text else "无法提取内容"
 
-            if not content:
-                content = all_text[:600] if all_text else "无法提取内容"
-
+        content = re.sub(r'\s+', ' ', _strip_page_chrome(content)).strip()
         return content[:2000] + "..." if len(content) > 2000 else content
 
     except Exception as e:
