@@ -115,13 +115,47 @@ def _extract_article_text(container):
     return joined if len(joined) >= max(50, len(whole) * 0.5) else whole
 
 
+# The source site throttles bursts: a run that fetches ~11 pages in a few
+# seconds gets 403 on the later ones, from a cloud IP especially.
+BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+}
+RETRY_STATUS = {403, 429, 500, 502, 503, 504}
+RETRY_DELAYS = (1, 3)
+ARTICLE_DELAY_SECONDS = 0.7
+
+
+def _fetch(url, headers, timeout=10, attempts=2):
+    """GET a URL, retrying the transient blocks the source site returns."""
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout, verify=False)
+            if response.status_code not in RETRY_STATUS:
+                response.raise_for_status()
+                return response
+            last_error = requests.exceptions.HTTPError(
+                f"{response.status_code} Client Error for url: {url}", response=response)
+        except requests.exceptions.RequestException as e:
+            last_error = e
+
+        if attempt < attempts - 1:
+            delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
+            print(f"Retrying in {delay}s after {last_error}")
+            time.sleep(delay)
+
+    raise last_error
+
+
 def scrape_article_content(article_url, headers, base_url='https://www.wenxuecity.com'):
     """Scrape the content of a single article"""
     try:
         # Ensure URL is absolute for the given source site
         article_url = urljoin(base_url, article_url)
 
-        response = requests.get(article_url, headers=headers, timeout=15, verify=False)
+        response = _fetch(article_url, headers, timeout=10)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -165,14 +199,12 @@ def scrape_wenxuecity():
     url = "https://www.wenxuecity.com/news/"
 
     # Add proper headers to avoid blocking
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    headers = dict(BROWSER_HEADERS)
 
     try:
         # Make request with timeout and SSL verification disabled for now
         # Note: In production, consider using proper certificates or verify=True
-        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r = _fetch(url, headers, timeout=10)
         r.raise_for_status()
 
         soup = BeautifulSoup(r.content, 'html.parser')
@@ -268,14 +300,12 @@ def scrape_oursteps():
     url = oursteps_url
 
     # Add proper headers to avoid blocking
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    headers = dict(BROWSER_HEADERS)
 
     try:
         # Make request with timeout and SSL verification disabled for now
         # Note: In production, consider using proper certificates or verify=True
-        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r = _fetch(url, headers, timeout=10)
         r.raise_for_status()
 
         soup = BeautifulSoup(r.content, 'html.parser')
@@ -359,14 +389,12 @@ def scrape_wenxuecity_detailed():
     url = "https://www.wenxuecity.com/news/"
 
     # Add proper headers to avoid blocking
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    headers = dict(BROWSER_HEADERS)
 
     try:
         # Make request with timeout and SSL verification disabled for now
         # Note: In production, consider using proper certificates or verify=True
-        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r = _fetch(url, headers, timeout=10)
         r.raise_for_status()
 
         soup = BeautifulSoup(r.content, 'html.parser')
@@ -421,7 +449,17 @@ def scrape_wenxuecity_detailed():
         for i, article in enumerate(article_links, 1):
             print(f"Scraping article {i}/10: {article['title'][:50]}...")
 
-            content = scrape_article_content(article['url'], headers)
+            try:
+                content = scrape_article_content(article['url'], headers)
+            except Exception as e:
+                print(f"Error scraping article {article['url']}: {e}")
+                content = "内容获取失败"
+
+            # Never pass placeholder text on to speech: a blocked or empty fetch
+            # would otherwise be narrated as an article.
+            if not _has_significant_words(content):
+                print(f"Skipping article without usable content: {article['title'][:50]}...")
+                continue
 
             # Add the article with both title and content
             news_articles.append({
@@ -429,6 +467,9 @@ def scrape_wenxuecity_detailed():
                 'content': content,
                 'url': article['url']
             })
+
+            # Space out requests so the site does not treat the run as a burst.
+            time.sleep(ARTICLE_DELAY_SECONDS)
 
         return news_articles
 

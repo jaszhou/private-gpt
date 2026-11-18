@@ -70,11 +70,13 @@ CHROME_MARKERS = ("advertisement", "您的位置", "文章来源", "被阅读次
 
 
 class FakeResponse:
-    def __init__(self, html):
+    def __init__(self, html, status_code=200):
         self.content = html.encode("utf-8")
+        self.status_code = status_code
 
     def raise_for_status(self):
-        pass
+        if self.status_code >= 400:
+            raise nlf.requests.exceptions.HTTPError(f"{self.status_code}", response=self)
 
 
 def test_article_extraction_drops_page_chrome(monkeypatch):
@@ -106,3 +108,36 @@ def test_strip_page_chrome_leaves_body_intact():
     # An article that merely mentions a marker far from the start is untouched.
     deep = body * 20 + "本文提到文章来源:这一说法并作出澄清。"
     assert nlf._strip_page_chrome(deep) == deep
+
+
+def test_fetch_retries_through_a_transient_403(monkeypatch):
+    """The site blocks bursts; one retry must recover a transient 403."""
+    calls = []
+
+    def flaky(url, **kwargs):
+        calls.append(url)
+        return FakeResponse("ok", status_code=403 if len(calls) == 1 else 200)
+
+    monkeypatch.setattr(nlf.requests, "get", flaky)
+    monkeypatch.setattr(nlf.time, "sleep", lambda _s: None)
+
+    response = nlf._fetch("https://example.test/a", {})
+
+    assert response.status_code == 200
+    assert len(calls) == 2
+
+
+def test_fetch_gives_up_after_retries(monkeypatch):
+    calls = []
+
+    def always_403(url, **kwargs):
+        calls.append(url)
+        return FakeResponse("blocked", status_code=403)
+
+    monkeypatch.setattr(nlf.requests, "get", always_403)
+    monkeypatch.setattr(nlf.time, "sleep", lambda _s: None)
+
+    with pytest.raises(nlf.requests.exceptions.HTTPError):
+        nlf._fetch("https://example.test/b", {})
+
+    assert len(calls) == 2
